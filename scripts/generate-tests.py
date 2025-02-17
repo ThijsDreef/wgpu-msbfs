@@ -146,12 +146,12 @@ def generate_ground_truth():
         # output CSR to file
         try:
             with open(f'{output_dir}/v.bin', "xb") as output:
-                output.write(vertex_result['csrv'])
+                output.write(vertex_result['csrv'].astype('uint32'))
         except:
             pass
         try:
             with open(f'{output_dir}/e.bin', "xb") as output:
-                output.write(edge_result['csre'])
+                output.write(edge_result['csre'].astype('uint32'))
         except:
             pass
         # generate ground truth
@@ -165,13 +165,13 @@ def generate_ground_truth():
                 try:
                     # write src column to disk
                     with open (f'{output_dir}/{pair}-src.bin', "xb") as output:
-                        output.write(result['src'].tobytes())
+                        output.write(result['src'].astype('uint32'))
                 except:
                     pass
                 try:
                     # write dst column to disk
                     with open (f'{output_dir}/{pair}-dst.bin', "xb") as output:
-                        output.write(result['dst'].tobytes())
+                        output.write(result['dst'].astype('uint32'))
                 except:
                     pass
 
