@@ -1,4 +1,7 @@
 build
 compile_commands.json
-data/*
-!data/.gitkeep
+data/1
+data/3
+data/10
+data/30
+data/snb
