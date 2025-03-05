@@ -75,6 +75,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
     encoder.clearBuffer(destinations, 0, sizeof(uint32_t) * 32);
     encoder.clearBuffer(path_length, 0, sizeof(uint32_t) * 32);
     state.queue.submit(encoder.finish());
+    encoder.release();
 
     // Current hack to write some src into start
     std::map<uint32_t, uint32_t> to_write;
@@ -116,7 +117,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
 
       state.queue.submit(encoder.finish());
       length = getMappedResult(state, jfq_length_staging, sizeof(uint32_t))[0];
-
+      encoder.release();
       iterations++;
     } while (length != 0);
     encoder = state.device.createCommandEncoder({});
@@ -133,6 +134,24 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
           .length = output[j],
       });
     }
+  }
+
+  // Cleanup
+  bsa.release();
+  bsak.release();
+  jfq.release();
+  v_buffer.release();
+  e_buffer.release();
+  jfq_length.release();
+  jfq_length_staging.release();
+  destinations.release();
+  path_length.release();
+  mask.release();
+  iteration.release();
+  output_staging.release();
+  for (size_t i = 0; i < 4; i++) {
+    identify_groups[i].release();
+    expand_groups[i].release();
   }
 
 
