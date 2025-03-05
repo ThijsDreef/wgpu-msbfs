@@ -23,10 +23,8 @@ var<storage> bsa: array<u32>;
 var<storage, read_write> bsak: array<atomic<u32>>;
 
 fn topdown(id: u32, stride: u32) {
-  for (var i : u32 = id; i < jfq_length; i += 64u * stride) {
+  for (var i : u32 = id; i < jfq_length; i += stride * 64u) {
     var vertex = jfq[i];
-    // If we want to avoid copying this is required.
-    bsak[vertex] |= bsa[vertex];
     var start: u32 = v[vertex];
     var end: u32 = v[vertex + 1];
     for (; start < end; start++) {

@@ -1,9 +1,27 @@
 #include "wgpu-state.hpp"
+#include <cstdint>
 #include <vector>
 
-std::vector<uint32_t> iterative_length(
+struct IterativeLengthResult {
+  uint32_t src;
+  uint32_t dst;
+  uint32_t length;
+};
+
+struct PathFindingRequest {
+  uint32_t *src;
+  uint32_t *dst;
+  uint64_t length;
+};
+
+struct CSR {
+  uint32_t *v;
+  uint32_t *e;
+  uint64_t v_length;
+  uint64_t e_length;
+};
+
+std::vector<IterativeLengthResult> iterative_length(
                       WGPUState& state,
-                      std::vector<uint32_t> src,
-                      std::vector<uint32_t> dst,
-                      std::vector<uint32_t> v,
-                      std::vector<uint32_t> e);
+                      PathFindingRequest request,
+                      CSR csr);

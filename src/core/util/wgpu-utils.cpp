@@ -50,11 +50,11 @@ std::unique_ptr<uint32_t[]> getMappedResult(WGPUState& state, wgpu::Buffer buffe
 
   while (!done) {
 #ifdef WEBGPU_BACKEND_WGPU
-    state.queue.submit(0, nullptr);
+//    state.queue.submit(0, nullptr);
 #else
     state.instance.processEvents();
 #endif
-    state.device.poll(false);
+    state.device.poll(true);
   }
   buffer.unmap();
   return result;

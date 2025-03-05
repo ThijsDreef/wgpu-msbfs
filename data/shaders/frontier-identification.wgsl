@@ -35,10 +35,12 @@ fn topdown() {
   jfq_length = 0u;
   for (var i : u32 = 0; i < bsal; i++) {
     var diff : u32 = (bsa[i] ^ bsak[i]) & mask;
-    var value : u32 = select(1u, 0u, diff == 0);
+    if (diff == 0) {
+      continue;
+    }
+    bsak[i] |= bsa[i];
     jfq[jfq_length] = i;
-    jfq_length += value;
-
+    jfq_length++;
     var length: u32 = countOneBits(diff);
     for (var j = 0u; j < length; j++) {
       var index: u32 = countTrailingZeros(diff);
@@ -48,6 +50,7 @@ fn topdown() {
       }
       diff &= ~(1u << index);
     }
+
   }
 }
 
