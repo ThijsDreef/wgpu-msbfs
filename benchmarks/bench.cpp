@@ -30,13 +30,14 @@ mmapped_file file_to_mmap(const char *path) {
 WGPUState wgpustate = WGPUState();
 
 #define CREATE_BENCHMARK(scale, pairs)                                         \
-  static void BM_Scale##scale##Pairs##pairs(benchmark::State &state) {                    \
+  static void BM_Scale##scale##Pairs##pairs(benchmark::State &state) {         \
     mmapped_file files[] = {                                                   \
         file_to_mmap("data/" #scale "/" #pairs "-src.bin"),                    \
         file_to_mmap("data/" #scale "/" #pairs "-dst.bin"),                    \
         file_to_mmap("data/" #scale "/v.bin"),                                 \
         file_to_mmap("data/" #scale "/e.bin"),                                 \
     };                                                                         \
+    TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \
       iterative_length(wgpustate,                                              \
                        {                                                       \
@@ -49,10 +50,15 @@ WGPUState wgpustate = WGPUState();
                            .e = (uint32_t *)files[3].data,                     \
                            .v_length = files[2].length / sizeof(uint32_t),     \
                            .e_length = files[3].length / sizeof(uint32_t),     \
-                       });                                                     \
+                       },                                                      \
+                       info);                                                  \
     }                                                                          \
+    state.counters["Expand"] = benchmark::Counter(                             \
+        info.expand_ns / 1000000000.0, benchmark::Counter::kAvgIterations);    \
+    state.counters["Identify"] = benchmark::Counter(                           \
+        info.identify_ns / 1000000000.0, benchmark::Counter::kAvgIterations);  \
   }                                                                            \
-BENCHMARK(BM_Scale##scale##Pairs##pairs)->Unit(benchmark::kSecond)
+  BENCHMARK(BM_Scale##scale##Pairs##pairs)->Unit(benchmark::kSecond)
 
 CREATE_BENCHMARK(1, 1);
 CREATE_BENCHMARK(1, 10);

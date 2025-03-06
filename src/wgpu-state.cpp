@@ -20,7 +20,9 @@ WGPUState::WGPUState() {
   };
 
   wgpu::DeviceDescriptor device_desc;
-  device_desc.requiredFeatures = reinterpret_cast<WGPUFeatureName*>(required_features);
+  device_desc.requiredFeatures =
+    reinterpret_cast<WGPUFeatureName *>(required_features);
+  device_desc.requiredFeatureCount = 1;
   device = adapter.requestDevice(device_desc);
   queue = device.getQueue();
   expand = std::unique_ptr<FrontierExpansion>(new FrontierExpansion(device));

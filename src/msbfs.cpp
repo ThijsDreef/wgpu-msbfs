@@ -4,6 +4,12 @@
 #include <map>
 
 std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr) {
+  TimingInfo timing_info;
+  return iterative_length(state, request, csr, timing_info);
+}
+
+
+std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr, TimingInfo& timing_info) {
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 
@@ -45,6 +51,21 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
   flags = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
   desc = getBufferDescriptor(sizeof(uint32_t) * 32, false, flags);
   wgpu::Buffer output_staging = state.device.createBuffer(desc);
+
+  flags = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Storage |
+          wgpu::BufferUsage::CopySrc | wgpu::BufferUsage::QueryResolve;
+  desc = getBufferDescriptor(sizeof(uint64_t) * 4, false, flags);
+  wgpu::Buffer timing_buffer = state.device.createBuffer(desc);
+  flags = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
+  desc = getBufferDescriptor(sizeof(uint64_t) * 4, false, flags);
+  wgpu::Buffer timing_staging_buffer = state.device.createBuffer(desc);
+
+
+  // Timing specifics
+  wgpu::QuerySetDescriptor q_desc;
+  q_desc.type = wgpu::QueryType::Timestamp;
+  q_desc.count = 4;
+  wgpu::QuerySet timing_query_set = state.device.createQuerySet(q_desc);
 
   // Populate buffers
   state.queue.writeBuffer(v_buffer, 0, csr.v, v_size);
@@ -93,33 +114,60 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
 
     uint32_t length = 0;
     uint32_t iterations = 0;
+
+    wgpu::ComputePassDescriptor compute_desc;
+    wgpu::ComputePassTimestampWrites cp_timestamp_writes;
+    cp_timestamp_writes.beginningOfPassWriteIndex = 0;
+    cp_timestamp_writes.endOfPassWriteIndex = 1;
+    cp_timestamp_writes.querySet = timing_query_set;
+    compute_desc.timestampWrites = &cp_timestamp_writes;
+
     do {
       state.queue.writeBuffer(iteration, 0, &iterations, sizeof(uint32_t));
       wgpu::CommandEncoder encoder = state.device.createCommandEncoder({});
-      wgpu::ComputePassEncoder compute_pass = encoder.beginComputePass({});
+
+
+      wgpu::ComputePassEncoder compute_pass = encoder.beginComputePass(compute_desc);
       compute_pass.setPipeline(state.expand->pipeline);
       compute_pass.setBindGroup(0, expand_groups[0], 0, nullptr);
       compute_pass.setBindGroup(1, expand_groups[1], 0, nullptr);
       compute_pass.setBindGroup(2, expand_groups[2 + iterations % 2], 0,
                                 nullptr);
-      uint32_t size = length / 64 == 0 ? 1 : length / 64;
-      compute_pass.dispatchWorkgroups(size, 1, 1);
+      uint32_t size = length / 64 + 1;
+      compute_pass.dispatchWorkgroups(size > 256 ? 256 : size, 1, 1);
+      compute_pass.end();
+      compute_pass.release();
 
+      cp_timestamp_writes.beginningOfPassWriteIndex = 2;
+      cp_timestamp_writes.endOfPassWriteIndex = 3;
+      compute_pass = encoder.beginComputePass(compute_desc);
       compute_pass.setPipeline(state.identify->pipeline);
       compute_pass.setBindGroup(0, identify_groups[0], 0, nullptr);
       compute_pass.setBindGroup(1, identify_groups[1], 0, nullptr);
       compute_pass.setBindGroup(2, identify_groups[2 + iterations % 2], 0, nullptr);
       compute_pass.dispatchWorkgroups(1, 1, 1);
+
       compute_pass.end();
       compute_pass.release();
 
-      encoder.copyBufferToBuffer(jfq_length, 0, jfq_length_staging, 0, sizeof(uint32_t));
+      encoder.copyBufferToBuffer(jfq_length, 0, jfq_length_staging, 0,
+                                 sizeof(uint32_t));
+
+
+      encoder.resolveQuerySet(timing_query_set, 0, 4, timing_buffer, 0);
+      encoder.copyBufferToBuffer(timing_buffer, 0, timing_staging_buffer, 0, sizeof(uint64_t) * 4);
 
       state.queue.submit(encoder.finish());
+
       length = getMappedResult(state, jfq_length_staging, sizeof(uint32_t))[0];
+      std::unique_ptr<uint32_t[]> x = getMappedResult(state, timing_staging_buffer, sizeof(uint64_t) * 4);
+      auto y = (uint64_t *)x.get();
+      timing_info.identify_ns += y[1] - y[0];
+      timing_info.expand_ns += y[3] - y[2];
       encoder.release();
       iterations++;
     } while (length != 0);
+
     encoder = state.device.createCommandEncoder({});
     encoder.copyBufferToBuffer(path_length, 0, output_staging, 0, sizeof(uint32_t) * 32);
     state.queue.submit(encoder.finish());
@@ -153,7 +201,6 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
     identify_groups[i].release();
     expand_groups[i].release();
   }
-
 
   return results;
 }
