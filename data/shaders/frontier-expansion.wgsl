@@ -22,14 +22,20 @@ var<storage> bsa: array<u32>;
 @binding(1)
 var<storage, read_write> bsak: array<atomic<u32>>;
 
+const amount_of_searches: u32 = 4;
+
 fn topdown(id: u32, stride: u32) {
-  for (var i : u32 = id; i < jfq_length; i += stride * 64u) {
+  for (var i : u32 = id; i < jfq_length; i += 64 * stride) {
     var vertex = jfq[i];
     var start: u32 = v[vertex];
     var end: u32 = v[vertex + 1];
+    var v_offset = vertex * amount_of_searches;
     for (; start < end; start++) {
-      var edge = e[start];
-      atomicOr(&bsak[edge], bsa[vertex]);
+      var edge = e[start] * amount_of_searches;
+      atomicOr(&bsak[edge], bsa[v_offset]);
+      atomicOr(&bsak[edge + 1], bsa[v_offset + 1]);
+      atomicOr(&bsak[edge + 2], bsa[v_offset + 2]);
+      atomicOr(&bsak[edge + 3], bsa[v_offset + 3]);
     }
   }
 }
