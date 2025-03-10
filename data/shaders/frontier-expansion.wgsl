@@ -42,7 +42,7 @@ fn bottomup(id: u32, stride: u32) {
     for (; neighbour < end; neighbour++) {
       var edge = e[neighbour];
       // This requires usage of the mask
-      bsak[frontier] |= bsa[edge];
+      // bsak[frontier] |= bsa[edge];
     }
   }
 }

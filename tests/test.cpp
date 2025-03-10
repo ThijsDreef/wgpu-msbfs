@@ -44,7 +44,7 @@ bool check_against_csv(const char *path,
     std::getline(file, line);
     IterativeLengthResult t;
     while (std::getline(file, line)) {
-      if (it > results.size()) {
+      if (it >= results.size()) {
         std::cout << "More results then in CSV" << std::endl;
         return false;
       }

@@ -13,7 +13,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 
-  WGPUBufferUsageFlags flags = wgpu::BufferUsage::CopySrc |
+  int flags = wgpu::BufferUsage::CopySrc |
                                wgpu::BufferUsage::Storage |
                                wgpu::BufferUsage::CopyDst;
   wgpu::BufferDescriptor desc = getBufferDescriptor(v_size, false, flags);
@@ -134,7 +134,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
       compute_pass.setBindGroup(2, expand_groups[2 + iterations % 2], 0,
                                 nullptr);
       uint32_t size = length / 64 + 1;
-      compute_pass.dispatchWorkgroups(size > 256 ? 256 : size, 1, 1);
+      compute_pass.dispatchWorkgroups(size > 1024 ? 1024 : size, 1, 1);
       compute_pass.end();
       compute_pass.release();
 
@@ -149,22 +149,20 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
 
       compute_pass.end();
       compute_pass.release();
-
+      encoder.resolveQuerySet(timing_query_set, 0, 4, timing_buffer, 0);
+      encoder.copyBufferToBuffer(timing_buffer, 0, timing_staging_buffer, 0,
+                                 sizeof(uint64_t) * 4);
       encoder.copyBufferToBuffer(jfq_length, 0, jfq_length_staging, 0,
                                  sizeof(uint32_t));
 
-
-      encoder.resolveQuerySet(timing_query_set, 0, 4, timing_buffer, 0);
-      encoder.copyBufferToBuffer(timing_buffer, 0, timing_staging_buffer, 0, sizeof(uint64_t) * 4);
-
       state.queue.submit(encoder.finish());
+      encoder.release();
 
       length = getMappedResult(state, jfq_length_staging, sizeof(uint32_t))[0];
       std::unique_ptr<uint32_t[]> x = getMappedResult(state, timing_staging_buffer, sizeof(uint64_t) * 4);
       auto y = (uint64_t *)x.get();
       timing_info.identify_ns += y[1] - y[0];
       timing_info.expand_ns += y[3] - y[2];
-      encoder.release();
       iterations++;
     } while (length != 0);
 

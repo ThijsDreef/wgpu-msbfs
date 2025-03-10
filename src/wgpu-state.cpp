@@ -5,8 +5,11 @@
 #include "wgpu-state.hpp"
 
 
-void error(WGPUErrorType type, const char* msg, void* user) {
-
+void error(WGPUErrorType type, const char *msg, void *user) {
+  std::cout << "[WGPU Error] " << type << " ";
+  if (msg)
+    std::cout << msg;
+  std::cout << std::endl;
 }
 
 WGPUState::WGPUState() {
@@ -16,13 +19,17 @@ WGPUState::WGPUState() {
 
   wgpu::FeatureName required_features[] = {
     wgpu::FeatureName::TimestampQuery,
-    wgpu::FeatureName::Undefined,
   };
 
   wgpu::DeviceDescriptor device_desc;
   device_desc.requiredFeatures =
     reinterpret_cast<WGPUFeatureName *>(required_features);
   device_desc.requiredFeatureCount = 1;
+
+#ifdef WEBGPU_BACKEND_DAWN
+  device_desc.uncapturedErrorCallbackInfo.callback = error;
+  device_desc.uncapturedErrorCallbackInfo.userdata = nullptr;
+#endif
   device = adapter.requestDevice(device_desc);
   queue = device.getQueue();
   expand = std::unique_ptr<FrontierExpansion>(new FrontierExpansion(device));
