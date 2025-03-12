@@ -27,7 +27,7 @@ struct TimingInfo {
 };
 
 std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr);
-
+std::vector<IterativeLengthResult> iterative_length_multi_queue(WGPUState &state, PathFindingRequest request, CSR csr);
 
 std::vector<IterativeLengthResult> iterative_length(WGPUState& state,
                                                     PathFindingRequest request,

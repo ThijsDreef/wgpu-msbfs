@@ -39,7 +39,7 @@ WGPUState wgpustate = WGPUState();
     };                                                                         \
     TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \
-      iterative_length(wgpustate,                                              \
+      iterative_length_multi_queue(wgpustate,                                              \
                        {                                                       \
                            .src = (uint32_t *)files[0].data,                   \
                            .dst = (uint32_t *)files[1].data,                   \
@@ -50,13 +50,9 @@ WGPUState wgpustate = WGPUState();
                            .e = (uint32_t *)files[3].data,                     \
                            .v_length = files[2].length / sizeof(uint32_t),     \
                            .e_length = files[3].length / sizeof(uint32_t),     \
-                       },                                                      \
-                       info);                                                  \
+                       }                                                      \
+                       );                                                  \
     }                                                                          \
-    state.counters["Expand"] = benchmark::Counter(                             \
-        info.expand_ns / 1000000000.0, benchmark::Counter::kAvgIterations);    \
-    state.counters["Identify"] = benchmark::Counter(                           \
-        info.identify_ns / 1000000000.0, benchmark::Counter::kAvgIterations);  \
   }                                                                            \
   BENCHMARK(BM_Scale##scale##Pairs##pairs)->Unit(benchmark::kSecond)
 
