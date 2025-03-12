@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <map>
+#include <thread>
 
 std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr) {
   TimingInfo timing_info;
@@ -135,7 +136,7 @@ MSBFSInstance create_msbfs_instance(WGPUState &state, size_t jfq_max_size) {
   return result;
 }
 
-#define IN_QUEUE 128
+#define IN_QUEUE 32
 
 std::vector<IterativeLengthResult> iterative_length_multi_queue(WGPUState &state, PathFindingRequest request, CSR csr) {
   std::vector<IterativeLengthResult> results;
@@ -279,6 +280,7 @@ std::vector<IterativeLengthResult> iterative_length_multi_queue(WGPUState &state
     }
 #ifdef WEBGPU_BACKEND_DAWN
     state.instance.processEvents();
+    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 #endif
 #ifdef WEBGPU_BACKEND_WGPU
     state.device.poll(true);
@@ -286,23 +288,23 @@ std::vector<IterativeLengthResult> iterative_length_multi_queue(WGPUState &state
   }
 
   for (size_t x = 0; x < IN_QUEUE; x++) {
-    instances[x].bsa.release();
-    instances[x].bsak.release();
-    instances[x].jfq.release();
-    instances[x].jfq_length.release();
-    instances[x].jfq_length_staging.release();
-    instances[x].path_lengths.release();
-    instances[x].path_lengths_staging.release();
-    instances[x].destinations.release();
-    instances[x].iteration.release();
+    instances[x].bsa.destroy();
+    instances[x].bsak.destroy();
+    instances[x].jfq.destroy();
+    instances[x].jfq_length.destroy();
+    instances[x].jfq_length_staging.destroy();
+    instances[x].path_lengths.destroy();
+    instances[x].path_lengths_staging.destroy();
+    instances[x].destinations.destroy();
+    instances[x].iteration.destroy();
     for (size_t y = 0; y < 4; y++) {
       instances[x].expand[y].release();
       instances[x].identify[y].release();
     }
   }
 
-  v_buffer.release();
-  e_buffer.release();
+  v_buffer.destroy();
+  e_buffer.destroy();
 
   return results;
 }
