@@ -1,5 +1,6 @@
 #include "core/kernels/uber-kernel.hpp"
 #include "core/util/shader-locator.hpp"
+#include "core/util/wgpu-utils.hpp"
 
 UberKernel::UberKernel(wgpu::Device device)
 : UberKernel(device, LOCATE_SHADER("data/shaders/msbfs-uber.wgsl")) {}
@@ -9,13 +10,13 @@ UberKernel::UberKernel(wgpu::Device device, char *shader_data) : uber_group(devi
 
   wgpu::ShaderModule shader;
   {
-    wgpu::ShaderModuleWGSLDescriptor wgsl_desc;
+    wgpu::ShaderSourceWGSL wgsl_desc;
     wgpu::ShaderModuleDescriptor desc;
 
     assert(shader_data);
 
-    wgsl_desc.code = shader_data;
-    wgsl_desc.chain.sType = wgpu::SType::ShaderModuleWGSLDescriptor;
+    wgsl_desc.code = getStringViewFromCString(shader_data);
+    wgsl_desc.chain.sType = wgpu::SType::ShaderSourceWGSL;
     desc.nextInChain = &wgsl_desc.chain;
 
     shader = device.createShaderModule(desc);
@@ -39,7 +40,7 @@ UberKernel::UberKernel(wgpu::Device device, char *shader_data) : uber_group(devi
 
   {
     wgpu::ComputePipelineDescriptor desc;
-    desc.compute.entryPoint = "main";
+    desc.compute.entryPoint = getStringViewFromCString("main");
     desc.compute.module = shader;
     desc.layout = pipeline_layout;
     pipeline = device.createComputePipeline(desc);

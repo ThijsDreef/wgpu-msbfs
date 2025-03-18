@@ -60,7 +60,6 @@ bool check_against_csv(const char *path,
     }
     file.close();
   }
-  std::cout << it << ", " << results.size() << std::endl;
   return it == results.size();
 }
 
