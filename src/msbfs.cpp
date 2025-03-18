@@ -66,30 +66,23 @@ void advanceMSBFSInstance(WGPUState &state, MSBFSInstance &instance) {
   encoder.release();
   instance.async_operations = 1;
 
-  //  wgpu::BufferMapCallbackInfo2 callback;
-  //  callback.callback = [](WGPUMapAsyncStatus status, const char *msg,
-  //                         void *user_1, void *user_2) {
-  //    MSBFSInstance* instance = (MSBFSInstance*)user_1;
-  //    wgpu::Buffer *jfq_buffer = (wgpu::Buffer*)user_2;
-  //    instance->queue_length =
-  //        *(uint32_t *)instance->jfq_length_staging.getConstMappedRange(
-  //                                                                      0,
-  //                                                                      sizeof(uint32_t));
-  //    instance->async_operations--;
-  //    jfq_buffer->unmap();
-  //  };
-  //  callback.mode = wgpu::CallbackMode::AllowProcessEvents;
-  //  callback.userdata1 = &instance;
-  //  callback.userdata2 = &instance.jfq_length_staging;
-  //  instance.jfq_length_staging.mapAsync2(wgpu::MapMode::Read, 0,
-  //  sizeof(uint32_t), callback);
-  WGPUBufferMapCallback callback = [](WGPUBufferMapAsyncStatus status, void* user) {
-    MSBFSInstance& instance = *(MSBFSInstance*)user;
-    instance.queue_length = *(uint32_t *)instance.jfq_length_staging.getConstMappedRange(0, sizeof(uint32_t));
-    instance.async_operations--;
-    instance.jfq_length_staging.unmap();
+  wgpu::BufferMapCallbackInfo callback;
+  callback.callback = [](WGPUMapAsyncStatus status, WGPUStringView msg,
+                         void *user_1, void *user_2) {
+    MSBFSInstance* instance = (MSBFSInstance*)user_1;
+    wgpu::Buffer *jfq_buffer = (wgpu::Buffer*)user_2;
+    instance->queue_length =
+        *(uint32_t *)instance->jfq_length_staging.getConstMappedRange(
+                                                                      0,
+                                                                      sizeof(uint32_t));
+    instance->async_operations--;
+    jfq_buffer->unmap();
   };
-  wgpuBufferMapAsync(instance.jfq_length_staging, wgpu::MapMode::Read, 0, sizeof(uint32_t), callback, &instance);
+  callback.mode = wgpu::CallbackMode::AllowProcessEvents;
+  callback.userdata1 = &instance;
+  callback.userdata2 = &instance.jfq_length_staging;
+  instance.jfq_length_staging.mapAsync(wgpu::MapMode::Read, 0,
+  sizeof(uint32_t), callback);
 
   instance.iterations++;
 }
@@ -236,43 +229,27 @@ std::vector<IterativeLengthResult> iterative_length_multi_queue(WGPUState &state
         state.queue.submit(encoder.finish());
         encoder.release();
 
-        // wgpu::BufferMapCallbackInfo2 callback;
-        // callback.callback = [](WGPUMapAsyncStatus status, const char *msg,
-        //                        void *user_1, void *user_2) {
-        //   MSBFSInstance* instance = (MSBFSInstance*)user_1;
-        //   Results *r = (Results*)user_2;
-        //   uint32_t* data = (uint32_t*)instance->path_lengths_staging.getConstMappedRange(0, sizeof(uint32_t) * 32);
-        //   size_t offset = instance->offset;
-        //   for (size_t x = 0; x < instance->length; x++) {
-        //     if (data[x] == 0 && r->results->at(x + offset).src != r->results->at(x + offset).dst) continue;
-        //     r->results->at(x + offset).length = data[x];
-        //   }
-        //   *r->finished += instance->length;
-        //   instance->offset = 0;
-        //   instance->length = 0;
-        //   instance->async_operations--;
-        //   instance->path_lengths_staging.unmap();
-        // };
-        // callback.mode = wgpu::CallbackMode::AllowProcessEvents;
-        // callback.userdata1 = &instances[x];
-        // callback.userdata2 = &r;
-        // instances[x].path_lengths_staging.mapAsync2(wgpu::MapMode::Read, 0, 32 * sizeof(uint32_t), callback);
-
-        WGPUBufferMapCallback callback = [](WGPUBufferMapAsyncStatus status, void* user_data) {
-          Results* x = (Results*)user_data;
-          uint32_t* data = (uint32_t*)x->instance->path_lengths_staging.getConstMappedRange(0, sizeof(uint32_t) * 32);
-          size_t offset = x->instance->offset;
-          for (size_t y = 0; y < x->instance->length; y++) {
-            if (data[y] == 0 && x->results->at(y + offset).src != x->results->at(y + offset).dst) continue;
-            x->results->at(y + offset).length = data[y];
+        wgpu::BufferMapCallbackInfo callback;
+        callback.callback = [](WGPUMapAsyncStatus status, WGPUStringView msg,
+                               void *user_1, void *user_2) {
+          MSBFSInstance* instance = (MSBFSInstance*)user_1;
+          Results *r = (Results*)user_2;
+          uint32_t* data = (uint32_t*)instance->path_lengths_staging.getConstMappedRange(0, sizeof(uint32_t) * 32);
+          size_t offset = instance->offset;
+          for (size_t x = 0; x < instance->length; x++) {
+            if (data[x] == 0 && r->results->at(x + offset).src != r->results->at(x + offset).dst) continue;
+            r->results->at(x + offset).length = data[x];
           }
-          *x->finished += x->instance->length;
-          x->instance->offset = 0;
-          x->instance->length = 0;
-          x->instance->async_operations--;
-          x->instance->path_lengths_staging.unmap();
+          *r->finished += instance->length;
+          instance->offset = 0;
+          instance->length = 0;
+          instance->async_operations--;
+          instance->path_lengths_staging.unmap();
         };
-        wgpuBufferMapAsync(instances[x].path_lengths_staging, WGPUMapMode::WGPUMapMode_Read, 0, sizeof(uint32_t) * 32, callback, &results_c[x]);
+        callback.mode = wgpu::CallbackMode::AllowProcessEvents;
+        callback.userdata1 = &instances[x];
+        callback.userdata2 = &results_c[x];
+        instances[x].path_lengths_staging.mapAsync(wgpu::MapMode::Read, 0, 32 * sizeof(uint32_t), callback);
       } else if (instances[x].async_operations == 0) {
         // Advance msbfs
         advanceMSBFSInstance(state, instances[x]);
@@ -283,7 +260,7 @@ std::vector<IterativeLengthResult> iterative_length_multi_queue(WGPUState &state
     std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 #endif
 #ifdef WEBGPU_BACKEND_WGPU
-    state.device.poll(true);
+    state.device.poll(true, nullptr);
 #endif
   }
 
