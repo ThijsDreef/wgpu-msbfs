@@ -1,7 +1,9 @@
 #include "core/util/wgpu-utils.hpp"
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <thread>
 #include <vector>
 
 wgpu::BindGroupLayoutEntry getComputeEntry(uint32_t binding, wgpu::BufferBindingType type, bool dynamic_offset, uint64_t min_bind_size) {
@@ -50,7 +52,8 @@ std::unique_ptr<uint32_t[]> getMappedResult(WGPUState& state, wgpu::Buffer buffe
                        });
 
   while (!done) {
-    state.device.poll(false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    state.device.poll(true);
   }
   buffer.unmap();
   return result;
@@ -63,6 +66,7 @@ struct CopyData {
 };
 
 static void handleBufferMap(WGPUMapAsyncStatus status, const char* msg, void* user_1, void* user_2) {
+  std::cout << "status: "<< status << std::endl;
   wgpu::Buffer* buffer = (wgpu::Buffer*)user_1;
   CopyData* copy = (CopyData*)user_2;
   const void* data = buffer->getConstMappedRange(0, copy->size);
@@ -74,14 +78,13 @@ std::unique_ptr<uint32_t[]> getMappedResult(WGPUState& state, wgpu::Buffer buffe
   CopyData copy = { size, result.get() };
 
   wgpu::BufferMapCallbackInfo2 info;
-  info.mode = wgpu::CallbackMode::WaitAnyOnly;
+  info.mode = wgpu::CallbackMode::AllowSpontaneous;
   info.callback = handleBufferMap;
   info.userdata1 = &buffer;
   info.userdata2 = &copy;
-  auto x = buffer.mapAsync2(wgpu::MapMode::Read, 0, size, info);
   wgpu::FutureWaitInfo wait_info;
   wait_info.setDefault();
-  wait_info.future = x;
+  wait_info.future = buffer.mapAsync2(wgpu::MapMode::Read, 0, size, info);
   while (!wait_info.completed) {
     state.instance.waitAny(1, &wait_info, 0);
   }

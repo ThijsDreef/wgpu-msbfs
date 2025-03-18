@@ -37,9 +37,8 @@ WGPUState wgpustate = WGPUState();
         file_to_mmap("data/" #scale "/v.bin"),                                 \
         file_to_mmap("data/" #scale "/e.bin"),                                 \
     };                                                                         \
-    TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \
-      iterative_length(wgpustate,                                              \
+      iterative_length_uber(wgpustate,                                              \
                        {                                                       \
                            .src = (uint32_t *)files[0].data,                   \
                            .dst = (uint32_t *)files[1].data,                   \
@@ -50,13 +49,9 @@ WGPUState wgpustate = WGPUState();
                            .e = (uint32_t *)files[3].data,                     \
                            .v_length = files[2].length / sizeof(uint32_t),     \
                            .e_length = files[3].length / sizeof(uint32_t),     \
-                       },                                                      \
-                       info);                                                  \
+                       }                                                      \
+                       );                                                  \
     }                                                                          \
-    state.counters["Expand"] = benchmark::Counter(                             \
-        info.expand_ns / 1000000000.0, benchmark::Counter::kAvgIterations);    \
-    state.counters["Identify"] = benchmark::Counter(                           \
-        info.identify_ns / 1000000000.0, benchmark::Counter::kAvgIterations);  \
   }                                                                            \
   BENCHMARK(BM_Scale##scale##Pairs##pairs)->Unit(benchmark::kSecond)
 
@@ -67,6 +62,9 @@ CREATE_BENCHMARK(1, 1000);
 CREATE_BENCHMARK(1, 2048);
 CREATE_BENCHMARK(1, 4096);
 CREATE_BENCHMARK(1, 8192);
+CREATE_BENCHMARK(1, 16384);
+CREATE_BENCHMARK(1, 32768);
+CREATE_BENCHMARK(1, 65536);
 
 CREATE_BENCHMARK(3, 1);
 CREATE_BENCHMARK(3, 10);
@@ -75,6 +73,9 @@ CREATE_BENCHMARK(3, 1000);
 CREATE_BENCHMARK(3, 2048);
 CREATE_BENCHMARK(3, 4096);
 CREATE_BENCHMARK(3, 8192);
+CREATE_BENCHMARK(3, 16384);
+CREATE_BENCHMARK(3, 32768);
+CREATE_BENCHMARK(3, 65536);
 
 CREATE_BENCHMARK(10, 1);
 CREATE_BENCHMARK(10, 10);
@@ -83,6 +84,9 @@ CREATE_BENCHMARK(10, 1000);
 CREATE_BENCHMARK(10, 2048);
 CREATE_BENCHMARK(10, 4096);
 CREATE_BENCHMARK(10, 8192);
+CREATE_BENCHMARK(10, 16384);
+CREATE_BENCHMARK(10, 32768);
+CREATE_BENCHMARK(10, 65536);
 
 CREATE_BENCHMARK(30, 1);
 CREATE_BENCHMARK(30, 10);
@@ -91,5 +95,8 @@ CREATE_BENCHMARK(30, 1000);
 CREATE_BENCHMARK(30, 2048);
 CREATE_BENCHMARK(30, 4096);
 CREATE_BENCHMARK(30, 8192);
+CREATE_BENCHMARK(30, 16384);
+CREATE_BENCHMARK(30, 32768);
+CREATE_BENCHMARK(30, 65536);
 
 BENCHMARK_MAIN();

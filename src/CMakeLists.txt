@@ -17,6 +17,8 @@ add_library(${LIB_NAME} ${LIB_TYPE}
   core/kernels/bindgroups/csr.cpp
   core/kernels/bindgroups/iterative-length.cpp
   core/kernels/bindgroups/jfq.cpp
+  core/kernels/bindgroups/uber.cpp
+  core/kernels/uber-kernel.cpp
 )
 target_include_directories(${LIB_NAME} PUBLIC include/)
 target_link_libraries(${LIB_NAME} webgpu)
