@@ -9,8 +9,8 @@ from pathlib import Path
 
 DUCKPGQ_INSTALL_COMMAND = "force install 'scripts/duckpgq.duckdb_extension'"
 
-PAIR_LIST = [1, 10, 100, 1000, 2048, 4096, 8192, 16384, 16384 * 2]
-SCALE_FACTORS = [1, 3, 10, 30]#, 100, 300, 1000]
+PAIR_LIST = [1, 10, 100, 1000, 2048, 4096, 8192, 16384, 16384 * 2, 16384 * 2 * 2]
+SCALE_FACTORS = [1, 3, 10, 30, 100, 300, 1000]
 OPERATIONS = ["iterativelength"]#, "shortestpath"]
 
 def extract_zst(archive: Path, out_path: Path):
