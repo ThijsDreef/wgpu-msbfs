@@ -20,6 +20,7 @@ FrontierExpansion::FrontierExpansion(wgpu::Device device, char *shader_data)
 
     wgsl_desc.chain.sType = wgpu::SType::ShaderSourceWGSL;
     desc.nextInChain = &wgsl_desc.chain;
+    desc.label = getStringViewFromCString("expand");
 
     shader = device.createShaderModule(desc);
 
@@ -29,9 +30,9 @@ FrontierExpansion::FrontierExpansion(wgpu::Device device, char *shader_data)
   }
 
   wgpu::BindGroupLayout bind_layouts[] = {
-      jfq_group.layout,
-      csr_group.layout,
-      bsa_group.layout,
+    csr_group.layout,
+    jfq_group.layout,
+    bsa_group.layout,
   };
 
   wgpu::PipelineLayout pipeline_layout;

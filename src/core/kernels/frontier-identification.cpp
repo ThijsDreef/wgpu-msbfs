@@ -21,6 +21,7 @@ FrontierIdentification::FrontierIdentification(wgpu::Device device, char* shader
     wgsl_desc.code = getStringViewFromCString(shader_data);
     wgsl_desc.chain.sType = wgpu::SType::ShaderSourceWGSL;
     desc.nextInChain = &wgsl_desc.chain;
+    desc.label = getStringViewFromCString("identification");
 
     shader = device.createShaderModule(desc);
 #ifdef USE_FILES
@@ -46,6 +47,7 @@ FrontierIdentification::FrontierIdentification(wgpu::Device device, char* shader
     wgpu::ComputePipelineDescriptor desc;
     desc.compute.entryPoint = getStringViewFromCString("main");
     desc.compute.module = shader;
+    desc.label = getStringViewFromCString("identification pipeline");
     desc.layout = pipeline_layout;
     pipeline = device.createComputePipeline(desc);
   }
