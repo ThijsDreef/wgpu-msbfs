@@ -15,7 +15,7 @@ void error(WGPUDeviceImpl *const * x, WGPUErrorType type, WGPUStringView msg, vo
 WGPUState::WGPUState() {
   instance = wgpu::createInstance({});
   wgpu::RequestAdapterOptions options;
-  options.powerPreference = wgpu::PowerPreference::LowPower;
+  options.powerPreference = wgpu::PowerPreference::HighPerformance;
   wgpu::Adapter adapter = instance.requestAdapter(options);
 
   wgpu::FeatureName required_features[] = {
