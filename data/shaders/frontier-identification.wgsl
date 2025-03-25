@@ -37,12 +37,14 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id
   var id = invocation.x;
   var bsa_offset = id * (arrayLength(&jfq) / 64u);
   var dst_offset = id * 32u;
+  var maskl = ~search_info[id].mask;
+  var iteration = search_info[id].iteration;
   atomicStore(&jfq_length, 0u);
-  atomicStore(&mask, ~search_info[id].mask);
+  atomicStore(&mask, maskl);
   workgroupBarrier();
-  if (search_info[id].jfq_length == 0 && search_info[id].iteration > 0) {return;}
-  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 64u) {
-    var diff : u32 = (bsa[bsa_offset + i] ^ bsak[bsa_offset + i]) & mask;
+
+  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 64) {
+    var diff : u32 = (bsa[bsa_offset + i] ^ bsak[bsa_offset + i]) & maskl;
     if (diff == 0) { continue; }
     bsak[bsa_offset + i] |= bsa[bsa_offset + i];
     var temp = atomicAdd(&jfq_length, 1u);
@@ -51,16 +53,13 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id
     for (var j = 0u; j < length; j++) {
       var index: u32 = countTrailingZeros(diff);
       if (dst[dst_offset + index] == i) {
-        path_length[dst_offset + index] = search_info[id].iteration;
+        path_length[dst_offset + index] = iteration;
         atomicAnd(&mask, ~(1u << index));
       }
       diff &= ~(1u << index);
     }
   }
-  search_info[id].mask = ~mask;
-  search_info[id].jfq_length = jfq_length;
-  workgroupBarrier();
-  if (local_id.x == 0) {
-    search_info[id].iteration++;
-  }
+  search_info[id].mask = ~atomicLoad(&mask);
+  search_info[id].jfq_length = atomicLoad(&jfq_length);
+  search_info[id].iteration = iteration + 1;
 }
