@@ -37,7 +37,8 @@ fn main(
 ) {
   var id = local_id.x;
   var bsa_offset = id * arrayLength(&v);
-  for (var i : u32 = invocation_id.x; i < search_info[id].jfq_length; i += invocation_size.x) {
+  var jfq_length = search_info[id].jfq_length;
+  for (var i : u32 = invocation_id.x; i < jfq_length; i += invocation_size.x) {
     var vertex = jfq[bsa_offset + i];
     var start: u32 = v[vertex];
     var end: u32 = v[vertex + 1];
