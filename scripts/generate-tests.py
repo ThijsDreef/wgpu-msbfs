@@ -9,8 +9,8 @@ from pathlib import Path
 
 DUCKPGQ_INSTALL_COMMAND = "force install 'scripts/duckpgq.duckdb_extension'"
 
-PAIR_LIST = [1, 10, 100, 1000, 2048, 4096, 8192, 16384, 16384 * 2]
-SCALE_FACTORS = [1, 3, 10, 30]#, 100, 300, 1000]
+PAIR_LIST = [1, 10, 100, 1000, 2048, 4096, 8192, 16384, 16384 * 2, 16384 * 4]
+SCALE_FACTORS = [1, 3, 10, 30, 100, 300]
 OPERATIONS = ["iterativelength"]#, "shortestpath"]
 
 def extract_zst(archive: Path, out_path: Path):
@@ -98,7 +98,7 @@ def get_data(scale, extension):
     columns = '{"id": "BIGINT"}' if extension == "v" else '{ "src": "BIGINT", "dst": "BIGINT", "cost": "BIGINT"}'
     sep = '' if extension == "v" else 'sep = " ",'
     table_name = 'nodes' if extension == "v" else "edges"
-    return f"""CREATE TABLE {table_name} AS FROM read_csv("../duckpgq-experiments/data/snb-bi-sf{scale}.{extension}", {sep} columns = { columns })"""
+    return f"""CREATE TABLE {table_name} AS FROM read_csv("./data/snb/snb-bi-sf{scale}.{extension}", {sep} columns = { columns })"""
 
 def download_test_data():
     output_dir = './data/snb'
@@ -107,7 +107,7 @@ def download_test_data():
     except Exception:
         pass
     for scale_factor in SCALE_FACTORS:
-        if not os.path.exists(f'{output_dir}/bi-sf{scale_factor}.v'):
+        if Path(f'{output_dir}/snb-bi-sf{scale_factor}.v').is_file():
             continue
         print(f"downloading asset: {output_dir}/bi-sf{scale_factor}")
 
@@ -122,7 +122,7 @@ def download_test_data():
 def generate_ground_truth():
     for scale_factor in SCALE_FACTORS:
         conn = duckdb.connect(config = { "allow_unsigned_extensions": "true" })
-        conn.execute("")
+        conn.execute("install duckpgq from community")
         conn.execute("load duckpgq")
 
         output_dir = f'./data/{scale_factor}'
