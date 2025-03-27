@@ -101,11 +101,9 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
     for (auto x : to_write) {
       state.queue.writeBuffer(bsak, x.first * sizeof(uint32_t), &x.second, sizeof(uint32_t));
     }
-
-    for (size_t iterations = 0; iterations < 50; iterations++) {
-      encoder = state.device.createCommandEncoder();
-      wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
-
+    encoder = state.device.createCommandEncoder();
+    wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
+    for (size_t iterations = 0; iterations < 25; iterations++) {
       c_encoder.setPipeline(state.identify->pipeline);
       c_encoder.setBindGroup(0, identify_groups[0], 0, nullptr);
       c_encoder.setBindGroup(1, identify_groups[1], 0, nullptr);
@@ -118,14 +116,11 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
       c_encoder.setBindGroup(1, expand_groups[1], 0, nullptr);
       c_encoder.setBindGroup(2, expand_groups[2 + iterations % 2], 0, nullptr);
       // Use 128 * 64 threads to execute the expand step.
-      c_encoder.dispatchWorkgroups(1024, 1, 1);
-      c_encoder.end();
-      c_encoder.release();
-      state.queue.submit(encoder.finish());
-      encoder.release();
-    }
+      c_encoder.dispatchWorkgroups(64, 1, 1);
 
-    encoder = state.device.createCommandEncoder();
+    }
+    c_encoder.end();
+    c_encoder.release();
     encoder.copyBufferToBuffer(path_lengths, 0, path_lengths_staging, 0, PAIRS_IN_PARALLEL * sizeof(uint32_t));
     state.queue.submit(encoder.finish());
     encoder.release();
