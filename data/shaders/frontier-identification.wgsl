@@ -32,7 +32,7 @@ var<workgroup> jfq_length: atomic<u32>;
 var<workgroup> mask: atomic<u32>;
 
 @compute
-@workgroup_size(64)
+@workgroup_size(256)
 fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) invocation: vec3<u32>) {
   var id = invocation.x;
   var bsa_offset = id * (arrayLength(&jfq) / 64u);
@@ -42,8 +42,8 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id
   atomicStore(&jfq_length, 0u);
   atomicStore(&mask, maskl);
   workgroupBarrier();
-
-  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 64) {
+  if (search_info[id].jfq_length == 0 && iteration > 0) {return;}
+  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 256) {
     var diff : u32 = (bsa[bsa_offset + i] ^ bsak[bsa_offset + i]) & maskl;
     if (diff == 0) { continue; }
     bsak[bsa_offset + i] |= bsa[bsa_offset + i];
