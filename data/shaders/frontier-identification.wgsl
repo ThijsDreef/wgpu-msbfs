@@ -2,6 +2,7 @@ struct SearchInfo {
   iteration: u32,
   mask: u32,
   jfq_length: u32,
+  padding: u32,
 };
 
 @group(0)
@@ -10,15 +11,15 @@ var<storage, read_write> jfq: array<u32>;
 
 @group(0)
 @binding(1)
-var<storage, read_write> search_info: array<SearchInfo, 64>;
+var<storage, read_write> search_info: array<SearchInfo>;
 
 @group(1)
 @binding(0)
-var<storage> dst: array<u32, 32 * 64>;
+var<storage> dst: array<u32>;
 
 @group(1)
 @binding(1)
-var<storage, read_write> path_length: array<u32, 32 * 64>;
+var<storage, read_write> path_length: array<u32>;
 
 @group(2)
 @binding(0)
@@ -32,10 +33,15 @@ var<workgroup> jfq_length: atomic<u32>;
 var<workgroup> mask: atomic<u32>;
 
 @compute
-@workgroup_size(64)
-fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) invocation: vec3<u32>) {
-  var id = invocation.x;
-  var bsa_offset = id * (arrayLength(&jfq) / 64u);
+@workgroup_size(64, 1, 1)
+fn main(
+  @builtin(local_invocation_id) local_id:vec3<u32>,
+  @builtin(workgroup_id) invocation: vec3<u32>,
+  @builtin(num_workgroups) invocation_size: vec3<u32>) {
+  var v_length = arrayLength(&jfq) / (arrayLength(&search_info));
+
+  var id = invocation.x + (invocation.z * 64u);
+  var bsa_offset = id * v_length;
   var dst_offset = id * 32u;
   var maskl = ~search_info[id].mask;
   var iteration = search_info[id].iteration;
@@ -43,7 +49,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id
   atomicStore(&mask, maskl);
   workgroupBarrier();
 
-  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 64) {
+  for (var i : u32 = local_id.x; i < v_length; i += 64) {
     var diff : u32 = (bsa[bsa_offset + i] ^ bsak[bsa_offset + i]) & maskl;
     if (diff == 0) { continue; }
     bsak[bsa_offset + i] |= bsa[bsa_offset + i];

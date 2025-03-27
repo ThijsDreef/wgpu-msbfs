@@ -17,12 +17,12 @@ IterativeLengthGroup::IterativeLengthGroup(wgpu::Device device) {
   layout = device.createBindGroupLayout(desc);
 }
 
-wgpu::BindGroup IterativeLengthGroup::getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths) {
+wgpu::BindGroup IterativeLengthGroup::getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths, size_t scale_factor) {
   wgpu::BindGroupDescriptor desc;
 
   wgpu::BindGroupEntry entries[] = {
-    getBindGroupBufferEntry(dst, 0, 0, sizeof(uint32_t) * 64 * 32),
-    getBindGroupBufferEntry(path_lengths, 1, 0, sizeof(uint32_t) * 64 * 32),
+    getBindGroupBufferEntry(dst, 0, 0, sizeof(uint32_t) * 64 * 32 * scale_factor),
+    getBindGroupBufferEntry(path_lengths, 1, 0, sizeof(uint32_t) * 64 * 32 * scale_factor),
   };
 
   desc.layout = layout;

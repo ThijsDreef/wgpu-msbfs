@@ -21,12 +21,12 @@ JFQGroup::JFQGroup(wgpu::Device device, bool write) {
 }
 
 
-wgpu::BindGroup JFQGroup::getBindGroup(wgpu::Buffer jfq, wgpu::Buffer search_info, uint64_t length) {
+wgpu::BindGroup JFQGroup::getBindGroup(wgpu::Buffer jfq, wgpu::Buffer search_info, uint64_t length, size_t scale_factor) {
   wgpu::BindGroupDescriptor desc;
 
   wgpu::BindGroupEntry entries[] = {
     getBindGroupBufferEntry(jfq, 0, 0, length),
-    getBindGroupBufferEntry(search_info, 1, 0, sizeof(uint32_t) * 4 * 64),
+    getBindGroupBufferEntry(search_info, 1, 0, sizeof(uint32_t) * 4 * 64 * scale_factor),
   };
 
   desc.layout = layout;
