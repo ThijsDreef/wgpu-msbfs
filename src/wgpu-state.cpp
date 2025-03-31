@@ -31,6 +31,9 @@ WGPUState::WGPUState() {
   wgpu::Limits limits;
   limits.setDefault();
   limits.maxStorageBuffersPerShaderStage = 7;
+  limits.maxComputeInvocationsPerWorkgroup = 1024;
+  limits.maxStorageBufferBindingSize = 134217728 * 4;
+  limits.maxBufferSize = limits.maxStorageBufferBindingSize;
 
   wgpu::AdapterInfo info;
   adapter.getInfo(&info);

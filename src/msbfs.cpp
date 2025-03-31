@@ -14,7 +14,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
   const size_t WORKGROUPS = 64;
   const size_t SEARCHES_IN_WORKGROUP = 32;
-  size_t MAX_SCALE_FACTOR = 134217728 / (v_size * WORKGROUPS);
+  size_t MAX_SCALE_FACTOR = (134217728 * 4) / (v_size * WORKGROUPS);
   MAX_SCALE_FACTOR = request.length / 2048 + 1 > MAX_SCALE_FACTOR
                          ? MAX_SCALE_FACTOR
                      : request.length / 2048 + 1;
@@ -123,7 +123,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
       c_encoder.setBindGroup(1, expand_groups[1], 0, nullptr);
       c_encoder.setBindGroup(2, expand_groups[2 + iterations % 2], 0, nullptr);
       // Use 128 * 64 threads to execute the expand step.
-      c_encoder.dispatchWorkgroups(32, 1, MAX_SCALE_FACTOR);
+      c_encoder.dispatchWorkgroups(64, 1, MAX_SCALE_FACTOR);
     }
     c_encoder.end();
     c_encoder.release();
