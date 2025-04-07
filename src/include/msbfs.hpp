@@ -26,10 +26,14 @@ struct TimingInfo {
   uint64_t identify_ns;
 };
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr);
+std::vector<IterativeLengthResult> iterative_length(WGPUState &state,
+                                                    PathFindingRequest request,
+                                                    CSR csr,
+                                                    CSR reverse_csr);
 
 
 std::vector<IterativeLengthResult> iterative_length(WGPUState& state,
                                                     PathFindingRequest request,
                                                     CSR csr,
+                                                    CSR reverse_csr,
                                                     TimingInfo &timing_info);

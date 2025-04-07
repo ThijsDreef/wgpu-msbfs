@@ -3,13 +3,13 @@
 #include <cstdint>
 #include <map>
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr) {
+std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr, CSR reverse_csr) {
   TimingInfo timing_info;
-  return iterative_length(state, request, csr, timing_info);
+  return iterative_length(state, request, csr, reverse_csr, timing_info);
 }
 
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr, TimingInfo& timing_info) {
+std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr, CSR reverse_csr, TimingInfo& timing_info) {
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 
@@ -19,17 +19,26 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
 
   int flags = wgpu::BufferUsage::Storage |
               wgpu::BufferUsage::CopyDst;
-  wgpu::BufferDescriptor desc = getBufferDescriptor(v_size, false, flags);
+  wgpu::BufferDescriptor desc = getBufferDescriptor(v_size * 2, false, flags);
   wgpu::Buffer v_buffer = state.device.createBuffer(desc);
 
-  desc = getBufferDescriptor(e_size, false, flags);
+
+  desc = getBufferDescriptor(e_size * 2, false, flags);
   wgpu::Buffer e_buffer = state.device.createBuffer(desc);
 
-  flags = wgpu::BufferUsage::Storage |
-          wgpu::BufferUsage::CopyDst;
+  flags = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst |
+          wgpu::BufferUsage::CopySrc;
   desc = getBufferDescriptor(v_size * WORKGROUPS, false, flags);
   wgpu::Buffer bsa = state.device.createBuffer(desc);
   wgpu::Buffer bsak = state.device.createBuffer(desc);
+
+
+//  flags = wgpu::BufferUsage::CopyDst |
+//          wgpu::BufferUsage::MapRead;
+//  desc = getBufferDescriptor(v_size * 25, false, flags);
+//  wgpu::Buffer debug_bsa = state.device.createBuffer(desc);
+//  wgpu::Buffer debug_bsak = state.device.createBuffer(desc);
+
 
 
   flags = wgpu::BufferUsage::Storage;
@@ -59,10 +68,12 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
 
   // Populate buffers
   state.queue.writeBuffer(v_buffer, 0, csr.v, v_size);
+  state.queue.writeBuffer(v_buffer, v_size, reverse_csr.v, v_size);
   state.queue.writeBuffer(e_buffer, 0, csr.e, e_size);
+  state.queue.writeBuffer(e_buffer, e_size, reverse_csr.e, e_size);
 
   wgpu::BindGroup expand_groups[] = {
-    state.expand->csr_group.getBindGroup(v_buffer, e_buffer, v_size, e_size),
+    state.expand->csr_group.getBindGroup(v_buffer, e_buffer, v_size * 2, e_size * 2),
     state.expand->jfq_group.getBindGroup(jfq, search_info, v_size * WORKGROUPS),
     state.expand->bsa_group.getBindGroup(bsa, bsak, v_size * WORKGROUPS),
     state.expand->bsa_group.getBindGroup(bsak, bsa, v_size * WORKGROUPS),
@@ -99,11 +110,12 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
     }
 
     for (auto x : to_write) {
-      state.queue.writeBuffer(bsak, x.first * sizeof(uint32_t), &x.second, sizeof(uint32_t));
+      state.queue.writeBuffer(bsa, x.first * sizeof(uint32_t), &x.second, sizeof(uint32_t));
     }
     encoder = state.device.createCommandEncoder();
-    wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
     for (size_t iterations = 0; iterations < 25; iterations++) {
+      wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
+
       c_encoder.setPipeline(state.identify->pipeline);
       c_encoder.setBindGroup(0, identify_groups[0], 0, nullptr);
       c_encoder.setBindGroup(1, identify_groups[1], 0, nullptr);
@@ -117,25 +129,46 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
       c_encoder.setBindGroup(2, expand_groups[2 + iterations % 2], 0, nullptr);
       // Use 128 * 64 threads to execute the expand step.
       c_encoder.dispatchWorkgroups(64, 1, 1);
-
+      c_encoder.end();
+      c_encoder.release();
+    //        encoder.copyBufferToBuffer(bsa, 0, debug_bsa, v_size * iterations, v_size);
+    //  encoder.copyBufferToBuffer(bsak, 0, debug_bsak, v_size * iterations, v_size);
     }
-    c_encoder.end();
-    c_encoder.release();
     encoder.copyBufferToBuffer(path_lengths, 0, path_lengths_staging, 0, PAIRS_IN_PARALLEL * sizeof(uint32_t));
     state.queue.submit(encoder.finish());
     encoder.release();
 
     auto output = getMappedResult(state, path_lengths_staging, PAIRS_IN_PARALLEL * sizeof(uint32_t));
     for (size_t j = 0; j < pairs_to_solve; j++) {
+//      if (j % 32 == 0) std::cout << std::endl;
+//      std::cout << output[j] << ", ";
       if (output[j] == 0 && request.dst[j + offset] != request.src[j + offset]) {
         continue;
       }
       results.push_back({
           .src = request.src[j + offset],
           .dst = request.dst[j + offset],
-          .length = (output[j] == 0) ? 0 : output[j] - 1,
+          .length = (output[j] == 0) ? 0 : output[j],
       });
     }
+
+  //  auto bsa = getMappedResult(state, debug_bsa, v_size * 25);
+  //  auto bsak = getMappedResult(state, debug_bsa, v_size * 25);
+
+    /**
+    for (size_t i = 0; i < 25; i++) {
+      std::cout << "Bsa at iteration " << i << std::endl;
+      for (size_t x = 0; x < csr.v_length; x++) {
+        std::cout << bsa[i * csr.v_length + x] << ", ";
+      }
+      std::cout << std::endl;
+      std::cout << "Bsak at iteration " << i << std::endl;
+      for (size_t x = 0; x < csr.v_length; x++) {
+        std::cout << bsak[i * csr.v_length + x] << ", ";
+      }
+      std::cout << std::endl;
+    }
+     **/
   }
   bsa.release();
   bsak.release();
