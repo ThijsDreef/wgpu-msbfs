@@ -64,7 +64,7 @@ fn bottomup(
     var vertex = jfq[bsa_offset + i];
     var start: u32 = e_offset + v[vertex + v_offset] + local_id.y;
     var end: u32 = e_offset + v[vertex + v_offset + 1];
-    var current = bsak[bsa_offset + vertex];
+    var current = atomicLoad(&bsak[bsa_offset + vertex]);
     for (; start < end; start += y_size) {
       current |= bsa[bsa_offset + e[start]];
     }

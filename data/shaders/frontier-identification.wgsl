@@ -31,6 +31,8 @@ var<storage, read_write> bsak: array<u32>;
 var<workgroup> jfq_length: atomic<u32>;
 var<workgroup> mask: atomic<u32>;
 
+const x_size = 256u;
+
 fn topdown(
   local_id: vec3<u32>,
   invocation: vec3<u32>,
@@ -40,11 +42,8 @@ fn topdown(
   var dst_offset = id * 32u;
   var maskl = ~search_info[id].mask;
   var iteration = search_info[id].iteration;
-  atomicStore(&jfq_length, 0u);
-  atomicStore(&mask, maskl);
-  workgroupBarrier();
   if (search_info[id].jfq_length == 0 && iteration > 0) {return;}
-  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 256) {
+  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += x_size) {
     var diff : u32 = (bsa[bsa_offset + i] ^ bsak[bsa_offset + i]) & maskl;
     if (diff == 0) { continue; }
     bsak[bsa_offset + i] |= bsa[bsa_offset + i];
@@ -74,19 +73,17 @@ fn bottomup(
   var dst_offset = id * 32u;
   var maskl = ~search_info[id].mask;
   var iteration = search_info[id].iteration;
-  atomicStore(&jfq_length, 0u);
-  atomicStore(&mask, maskl);
-  workgroupBarrier();
-  if (search_info[id].jfq_length == 0 && iteration > 0) {return;}
-  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += 256) {
-    var diff : u32 = (bsa[bsa_offset + i] ^ bsak[bsa_offset + i]) & maskl;
-    bsak[bsa_offset + i] |= bsa[bsa_offset + i];
 
-    if (((~bsak[bsa_offset + i]) & maskl) > 0) {
+  if (search_info[id].jfq_length == 0 && iteration > 0) {return;}
+  for (var i : u32 = local_id.x; i < arrayLength(&jfq) / 64; i += x_size) {
+    let temp = bsak[bsa_offset + i];
+
+    if (((~temp) & maskl) > 0) {
       var temp = atomicAdd(&jfq_length, 1u);
       jfq[bsa_offset + temp] = i;
     }
-
+    var diff : u32 = (temp ^ bsak[bsa_offset + i]) & maskl;
+    bsak[bsa_offset + i] |= bsa[bsa_offset + i];
     if (diff == 0) { continue; }
     var length: u32 = countOneBits(diff);
     for (var j = 0u; j < length; j++) {
@@ -104,9 +101,12 @@ fn bottomup(
 }
 
 @compute
-@workgroup_size(256)
+@workgroup_size(x_size)
 fn main(@builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) invocation: vec3<u32>) {
   var id = invocation.x;
+  atomicStore(&jfq_length, 0u);
+  atomicStore(&mask, ~search_info[id].mask);
+  workgroupBarrier();
   var iteration = search_info[id].iteration;
   if (iteration >= 3u && iteration <= 4u) {
     bottomup(local_id, invocation);
