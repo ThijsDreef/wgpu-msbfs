@@ -1,15 +1,18 @@
+#include "wgpu/wgpu-state.hpp"
 #include "msbfs.hpp"
 #include "core/util/wgpu-utils.hpp"
 #include <cstdint>
 #include <map>
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr) {
+WGPUState state = WGPUState();
+
+std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr) {
   TimingInfo timing_info;
-  return iterative_length(state, request, csr, timing_info);
+  return iterative_length(request, csr, timing_info);
 }
 
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr, TimingInfo& timing_info) {
+std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr, TimingInfo& timing_info) {
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 

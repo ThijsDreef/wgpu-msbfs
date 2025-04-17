@@ -1,4 +1,3 @@
-#include "wgpu-state.hpp"
 #include <cstdint>
 #include <vector>
 
@@ -26,10 +25,9 @@ struct TimingInfo {
   uint64_t identify_ns;
 };
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindingRequest request, CSR csr);
+std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr);
 
 
-std::vector<IterativeLengthResult> iterative_length(WGPUState& state,
-                                                    PathFindingRequest request,
+std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
                                                     CSR csr,
                                                     TimingInfo &timing_info);

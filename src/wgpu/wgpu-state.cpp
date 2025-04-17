@@ -1,8 +1,8 @@
 #define WEBGPU_CPP_IMPLEMENTATION
-#include "include/core/kernels/frontier-expansion.hpp"
-#include "include/core/kernels/frontier-identification.hpp"
+#include "core/kernels/frontier-expansion.hpp"
+#include "core/kernels/frontier-identification.hpp"
 #include <memory>
-#include "wgpu-state.hpp"
+#include "wgpu/wgpu-state.hpp"
 
 
 void error(WGPUDeviceImpl *const * x, WGPUErrorType type, WGPUStringView msg, void *user, void* s) {

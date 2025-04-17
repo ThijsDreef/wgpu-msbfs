@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <memory>
-#include "wgpu-state.hpp"
+#include "wgpu/wgpu-state.hpp"
 
 
 wgpu::BindGroupLayoutEntry getComputeEntry(uint32_t binding, wgpu::BufferBindingType type, bool dynamic_offset, uint64_t min_bind_size);
