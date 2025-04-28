@@ -8,5 +8,5 @@ public:
   wgpu::BindGroupLayout layout;
 public:
   explicit IterativeLengthGroup(wgpu::Device);
-  wgpu::BindGroup getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths);
+  wgpu::BindGroup getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths, uint32_t workgroups);
 };

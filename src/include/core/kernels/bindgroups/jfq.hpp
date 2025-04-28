@@ -9,5 +9,5 @@ public:
 
 public:
   explicit JFQGroup(wgpu::Device, bool write);
-  wgpu::BindGroup getBindGroup(wgpu::Buffer jfq, wgpu::Buffer jfq_length, uint64_t length);
+  wgpu::BindGroup getBindGroup(wgpu::Buffer jfq, wgpu::Buffer jfq_length, uint64_t length, uint32_t workgroups);
 };

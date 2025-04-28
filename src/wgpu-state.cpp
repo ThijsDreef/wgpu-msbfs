@@ -31,6 +31,8 @@ WGPUState::WGPUState() {
   wgpu::Limits limits;
   limits.setDefault();
   limits.maxComputeInvocationsPerWorkgroup = 1024;
+  limits.maxComputeWorkgroupSizeX = 256;
+  limits.maxComputeWorkgroupSizeY = 256;
   limits.maxStorageBuffersPerShaderStage = 7;
 
   wgpu::AdapterInfo info;

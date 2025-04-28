@@ -5,8 +5,8 @@ IterativeLengthGroup::IterativeLengthGroup(wgpu::Device device) {
   this->device = device;
 
   wgpu::BindGroupLayoutEntry entries[] = {
-    getComputeEntry(0, wgpu::BufferBindingType::ReadOnlyStorage, false, sizeof(uint32_t) * 64 * 32),
-    getComputeEntry(1, wgpu::BufferBindingType::Storage, false, sizeof(uint32_t) * 64 * 32),
+    getComputeEntry(0, wgpu::BufferBindingType::ReadOnlyStorage, false, sizeof(uint32_t)),
+    getComputeEntry(1, wgpu::BufferBindingType::Storage, false, sizeof(uint32_t)),
   };
 
   wgpu::BindGroupLayoutDescriptor desc;
@@ -17,12 +17,12 @@ IterativeLengthGroup::IterativeLengthGroup(wgpu::Device device) {
   layout = device.createBindGroupLayout(desc);
 }
 
-wgpu::BindGroup IterativeLengthGroup::getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths) {
+wgpu::BindGroup IterativeLengthGroup::getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths, uint32_t request_length) {
   wgpu::BindGroupDescriptor desc;
 
   wgpu::BindGroupEntry entries[] = {
-    getBindGroupBufferEntry(dst, 0, 0, sizeof(uint32_t) * 64 * 32),
-    getBindGroupBufferEntry(path_lengths, 1, 0, sizeof(uint32_t) * 64 * 32),
+    getBindGroupBufferEntry(dst, 0, 0, sizeof(uint32_t) * request_length),
+    getBindGroupBufferEntry(path_lengths, 1, 0, sizeof(uint32_t) * request_length),
   };
 
   desc.layout = layout;
