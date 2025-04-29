@@ -37,7 +37,7 @@ fn main(
   @builtin(workgroup_id) invocation_id: vec3<u32>,
 ) {
   var id = invocation_id.x;
-  if (local_id.x == 0u && invocation_id.y == 0u) {
+  if (local_id.x == 0u && local_id.y == 0u && invocation_id.y == 0u) {
     search_info[id].iteration += 1;
     search_info[id].last_jfq = search_info[id].jfq_length;
   }
