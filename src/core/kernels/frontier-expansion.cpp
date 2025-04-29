@@ -7,7 +7,7 @@ FrontierExpansion::FrontierExpansion(wgpu::Device device) :
 }
 
 FrontierExpansion::FrontierExpansion(wgpu::Device device, char *shader_data)
-: csr_group(device), jfq_group(device, false), bsa_group(device) {
+: csr_group(device), jfq_group(device, true), bsa_group(device) {
   this->device = device;
 
   wgpu::ShaderModule shader;
