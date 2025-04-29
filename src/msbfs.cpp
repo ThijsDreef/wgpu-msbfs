@@ -13,7 +13,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 
-  const size_t WORKGROUPS = 2 ;
+  const size_t WORKGROUPS = 1;
   const size_t SEARCHES_IN_WORKGROUP = 32;
   const size_t PAIRS_IN_PARALLEL = WORKGROUPS * SEARCHES_IN_WORKGROUP;
 
