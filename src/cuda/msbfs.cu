@@ -90,7 +90,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
 
   uint32_t *src, *bsa, *bsak, *jfq, *v_buffer, *e_buffer, *dst, *path_lengths;
   uint32_t *host_result = new uint32_t[request.length];
-  uint32_t debug[6];
+  uint32_t debug[WORKGROUPS * 3];
   SearchInfo *search_info;
 
   std::vector<IterativeLengthResult> results;
@@ -126,7 +126,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
     cudaMemset(search_info, 0, sizeof(SearchInfo) * WORKGROUPS);
     // Setup BSAK
     set_first_bsak<<<WORKGROUPS, 32>>>(bsak, src + offset, csr.v_length);
-    dim3 grid(WORKGROUPS, 46 * 2, 1);
+    dim3 grid(WORKGROUPS, 92 / WORKGROUPS, 1);
     dim3 block(128, 8, 1);
     uint32_t jfq_lengths = 1;
     for (int iteration = 0; jfq_lengths > 0; iteration++) {
@@ -141,8 +141,11 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
       }
       cudaDeviceSynchronize();
       if (iteration % 10 == 0) {
-        cudaMemcpy(debug, search_info, 3 * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        jfq_lengths = debug[2];// + debug[5];
+        cudaMemcpy(debug, search_info, WORKGROUPS * sizeof(SearchInfo), cudaMemcpyDeviceToHost);
+        jfq_lengths = 0;
+        for (size_t i = 0; i < WORKGROUPS; i++) {
+          jfq_lengths += debug[2 + 3 * i];
+        }
 //        std::cout << jfq_lengths << std::endl;
       }
 
