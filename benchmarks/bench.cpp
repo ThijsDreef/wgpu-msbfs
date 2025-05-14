@@ -34,6 +34,8 @@ mmapped_file file_to_mmap(const char *path) {
         file_to_mmap("data/" #scale "/" #pairs "-dst.bin"),                    \
         file_to_mmap("data/" #scale "/v.bin"),                                 \
         file_to_mmap("data/" #scale "/e.bin"),                                 \
+        file_to_mmap("data/" #scale "/r-v.bin"),                               \
+        file_to_mmap("data/" #scale "/r-e.bin"),                               \
     };                                                                         \
     TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \
@@ -48,6 +50,12 @@ mmapped_file file_to_mmap(const char *path) {
               .e = (uint32_t *)files[3].data,                                  \
               .v_length = files[2].length / sizeof(uint32_t),                  \
               .e_length = files[3].length / sizeof(uint32_t),                  \
+          },                                                                   \
+          {                                                                    \
+              .v = (uint32_t *)files[4].data,                                  \
+              .e = (uint32_t *)files[5].data,                                  \
+              .v_length = files[4].length / sizeof(uint32_t),                  \
+              .e_length = files[5].length / sizeof(uint32_t),                  \
           },                                                                   \
           info);                                                               \
     }                                                                          \
