@@ -1,41 +1,17 @@
 #include "benchmark/benchmark.h"
+#include "core/util/file-loader.hpp"
 #include "msbfs.hpp"
 #include "wgpu-state.hpp"
 
-#include "sys/mman.h"
-#include <cstdint>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#define UNIX
-
-struct mmapped_file {
-  void *data;
-  int fd;
-  size_t length;
-};
-
-#ifdef UNIX
-mmapped_file file_to_mmap(const char *path) {
-  mmapped_file file;
-  file.fd = open(path, O_RDONLY);
-  struct stat sb;
-  fstat(file.fd, &sb);
-  file.length = sb.st_size;
-  file.data = mmap(NULL, sb.st_size, PROT_WRITE, MAP_PRIVATE, file.fd, 0);
-  return file;
-}
-#endif
 WGPUState wgpustate = WGPUState();
 
 #define CREATE_BENCHMARK(scale, pairs)                                         \
   static void BM_Scale##scale##Pairs##pairs(benchmark::State &state) {         \
-    mmapped_file files[] = {                                                   \
-        file_to_mmap("data/" #scale "/" #pairs "-src.bin"),                    \
-        file_to_mmap("data/" #scale "/" #pairs "-dst.bin"),                    \
-        file_to_mmap("data/" #scale "/v.bin"),                                 \
-        file_to_mmap("data/" #scale "/e.bin"),                                 \
+    BinaryLoadedFile files[] = {                                               \
+        load_file("data/" #scale "/" #pairs "-src.bin"),                       \
+        load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
+        load_file("data/" #scale "/v.bin"),                                    \
+        load_file("data/" #scale "/e.bin"),                                    \
     };                                                                         \
     TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \

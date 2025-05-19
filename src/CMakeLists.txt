@@ -11,6 +11,7 @@ add_library(${LIB_NAME} ${LIB_TYPE}
   msbfs.cpp
   core/util/wgpu-utils.cpp
   core/util/shader-locator.cpp
+  core/util/file-loader.cpp
   core/kernels/frontier-identification.cpp
   core/kernels/frontier-expansion.cpp
   core/kernels/bindgroups/bsa.cpp
