@@ -1,3 +1,4 @@
+#include "core/util/file-loader.hpp"
 #include "core/util/wgpu-utils.hpp"
 #include "msbfs.hpp"
 #include "wgpu-state.hpp"
@@ -6,33 +7,7 @@
 #include <cstring>
 #include <fstream>
 #include <gtest/gtest.h>
-#include <iterator>
-#include <sys/mman.h>
 
-#include "sys/mman.h"
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-struct mmapped_file {
-  void *data;
-  int fd;
-  size_t length;
-};
-
-#define UNIX
-
-#ifdef UNIX
-mmapped_file file_to_mmap(const char *path) {
-  mmapped_file file;
-  file.fd = open(path, O_RDONLY);
-  struct stat sb;
-  fstat(file.fd, &sb);
-  file.length = sb.st_size;
-  file.data = mmap(NULL, sb.st_size, PROT_WRITE, MAP_PRIVATE, file.fd, 0);
-  return file;
-}
-#endif
 WGPUState state = WGPUState();
 
 bool check_against_csv(const char *path,
@@ -52,8 +27,8 @@ bool check_against_csv(const char *path,
       if (t.src != results[it].src || t.dst != results[it].dst ||
           t.length != results[it].length) {
         std::cout << "At index: " << it << std::endl;
-        std::cout << "[Error] found: " << results[it].src << " " << results[it].dst << " "
-                  << results[it].length << std::endl;
+        std::cout << "[Error] found: " << results[it].src << " "
+                  << results[it].dst << " " << results[it].length << std::endl;
         return false;
       }
       it++;
@@ -65,11 +40,11 @@ bool check_against_csv(const char *path,
 
 #define CREATE_TEST_CASE(scale, pairs)                                         \
   TEST(MSBFSIterativeLength, scale##pairs) {                                   \
-    mmapped_file files[] = {                                                   \
-        file_to_mmap("data/" #scale "/" #pairs "-src.bin"),                    \
-        file_to_mmap("data/" #scale "/" #pairs "-dst.bin"),                    \
-        file_to_mmap("data/" #scale "/v.bin"),                                 \
-        file_to_mmap("data/" #scale "/e.bin"),                                 \
+    BinaryLoadedFile files[] = {                                               \
+        load_file("data/" #scale "/" #pairs "-src.bin"),                       \
+        load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
+        load_file("data/" #scale "/v.bin"),                                    \
+        load_file("data/" #scale "/e.bin"),                                    \
     };                                                                         \
     std::vector<IterativeLengthResult> results =                               \
         iterative_length(state,                                                \
@@ -84,7 +59,7 @@ bool check_against_csv(const char *path,
                           .e_length = files[3].length / sizeof(uint32_t)});    \
                                                                                \
     ASSERT_TRUE(check_against_csv(                                             \
-"data/" #scale "/" #pairs "-iterativelength-truth.csv", results));             \
+        "data/" #scale "/" #pairs "-iterativelength-truth.csv", results));     \
   }
 
 CREATE_TEST_CASE(1, 1)
