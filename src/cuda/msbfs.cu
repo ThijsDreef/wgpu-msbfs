@@ -76,7 +76,7 @@ __global__ void identify_step_bottom_up(uint32_t v_length, SearchInfo *info,
   info->jfq_length = 0;
   __syncthreads();
   for (uint32_t i = blockIdx.y * blockDim.y + threadIdx.y; i < v_length; i += gridDim.y * blockDim.y) {
-    if (__ballot_sync(~0, ((~bsak[i * blockDim.x + threadIdx.x])) > 0) == 0) {
+    if (__ballot_sync(~0, ((~(bsak[i * blockDim.x + threadIdx.x] | (~c_mask)))) > 0) == 0) {
       continue;
     }
     uint32_t diff = (bsa[i * blockDim.x + threadIdx.x] ^ bsak[i * blockDim.x + threadIdx.x]) & c_mask;
@@ -109,10 +109,9 @@ __global__ void expand_step_bottom_up(uint32_t v_length, uint32_t* v, uint32_t* 
 
     uint32_t start = v[source] + threadIdx.y;
     const uint32_t end = v[source + 1];
-    for (; start < end; start += blockDim.y) {
+    for (; start < end && val != ~0; start += blockDim.y) {
       const uint32_t neighbour = e[start];
       val |= bsa[neighbour * blockDim.x + threadIdx.x];
-      if (val == ~0u) break;
     }
     atomicOr(&bsak[source * blockDim.x + threadIdx.x], val);
   }
@@ -192,8 +191,8 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
     cudaMemset(search_info, 0, sizeof(SearchInfo));
     // Setup BSAK
     set_first_bsak<<<SEARCH_ENTRIES, 32>>>(bsak, src + offset, request.length - offset);
-    dim3 grid(1, 46 * 4, 1);
-    dim3 block(SEARCH_ENTRIES, 8, 1);
+    dim3 grid(1, 46 * 6, 1);
+    dim3 block(SEARCH_ENTRIES, 4, 1);
     uint32_t jfq_lengths = 1;
     int32_t bottom_up_iterations = 0;
     for (int iteration = 0; jfq_lengths > 0; iteration++) {
