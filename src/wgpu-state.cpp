@@ -30,16 +30,8 @@ WGPUState::WGPUState() {
 
   wgpu::Limits limits;
   limits.setDefault();
-  limits.maxComputeInvocationsPerWorkgroup = 1024;
-  limits.maxComputeWorkgroupSizeX = 256;
-  limits.maxComputeWorkgroupSizeY = 256;
   limits.maxStorageBuffersPerShaderStage = 7;
 
-  wgpu::AdapterInfo info;
-  adapter.getInfo(&info);
-  std::cout << info.vendor.data << std::endl;
-  std::cout << info.device.data << std::endl;
-  device_desc.requiredLimits = &limits;
 
   device = adapter.requestDevice(device_desc);
   queue = device.getQueue();
