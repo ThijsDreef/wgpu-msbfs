@@ -40,6 +40,7 @@ fn main(
     search_info[0].iteration += 1;
     search_info[0].last_jfq = search_info[0].jfq_length;
   }
+
   var jfq_length = search_info[0].jfq_length;
   for (var i : u32 = invocation_id.y; i < jfq_length; i += invocation_size.y) {
     var vertex = jfq[i];

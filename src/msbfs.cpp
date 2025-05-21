@@ -44,7 +44,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
   desc = getBufferDescriptor(v_size * WORKGROUPS, false, flags);
   wgpu::Buffer jfq = state.device.createBuffer(desc);
 
-  flags = wgpu::BufferUsage::Storage |
+  flags = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopySrc |
           wgpu::BufferUsage::CopyDst;
   desc = getBufferDescriptor(sizeof(SearchInfo) * WORKGROUPS, false, flags);
   wgpu::Buffer search_info = state.device.createBuffer(desc);
@@ -64,6 +64,10 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
           wgpu::BufferUsage::MapRead;
   desc = getBufferDescriptor(sizeof(uint32_t) * PAIRS_IN_PARALLEL, false, flags);
   wgpu::Buffer path_lengths_staging = state.device.createBuffer(desc);
+
+  flags = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
+  desc = getBufferDescriptor(sizeof(uint32_t), false, flags);
+  wgpu::Buffer jfq_length_staging = state.device.createBuffer(desc);
 
   // Populate buffers
   state.queue.writeBuffer(v_buffer, 0, csr.v, v_size);
@@ -110,31 +114,41 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
       state.queue.writeBuffer(bsak, x.first * sizeof(uint32_t), &x.second, sizeof(uint32_t));
     }
 
-    encoder = state.device.createCommandEncoder();
+    uint32_t jfq_length = 1;
+    uint32_t target_iterations = 2;
+    while (jfq_length > 0) {
+      encoder = state.device.createCommandEncoder();
+      for (size_t iterations = 0; iterations < target_iterations; iterations++) {
+        // current hack to syncly set jfq_length back to zero
+        for (size_t w = 0; w < WORKGROUPS; w++) {
+          encoder.clearBuffer(search_info, (1 + 4 * w) * sizeof(uint32_t), sizeof(uint32_t));
+        }
+        wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
+        c_encoder.setPipeline(state.identify->pipeline);
+        c_encoder.setBindGroup(0, identify_groups[0], 0, nullptr);
+        c_encoder.setBindGroup(1, identify_groups[1], 0, nullptr);
+        c_encoder.setBindGroup(2, identify_groups[2 + iterations % 2], 0, nullptr);
+        // identify uses 64 warps to find results for 2048 searches
+        c_encoder.dispatchWorkgroups(WORKGROUPS, 92 * 8, 1);
 
-    for (size_t iterations = 0; iterations < 25; iterations++) {
-      // current hack to syncly set jfq_length back to zero
-      for (size_t w = 0; w < WORKGROUPS; w++) {
-        encoder.clearBuffer(search_info, (1 + 4 * w) * sizeof(uint32_t), sizeof(uint32_t));
+        c_encoder.setPipeline(state.expand->pipeline);
+        c_encoder.setBindGroup(0, expand_groups[0], 0, nullptr);
+        c_encoder.setBindGroup(1, expand_groups[1], 0, nullptr);
+        c_encoder.setBindGroup(2, expand_groups[2 + iterations % 2], 0, nullptr);
+        // Use 128 * 64 threads to execute the expand step.
+        c_encoder.dispatchWorkgroups(WORKGROUPS, 92 * 8, 1);
+        c_encoder.end();
+        c_encoder.release();
       }
-      wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
-      c_encoder.setPipeline(state.identify->pipeline);
-      c_encoder.setBindGroup(0, identify_groups[0], 0, nullptr);
-      c_encoder.setBindGroup(1, identify_groups[1], 0, nullptr);
-      c_encoder.setBindGroup(2, identify_groups[2 + iterations % 2], 0, nullptr);
-      // identify uses 64 warps to find results for 2048 searches
-      c_encoder.dispatchWorkgroups(WORKGROUPS, 92 * 8, 1);
+      encoder.copyBufferToBuffer(search_info, sizeof(uint32_t), jfq_length_staging, 0, sizeof(uint32_t));
+      state.queue.submit(encoder.finish());
+      encoder.release();
+      auto output = getMappedResult(state, jfq_length_staging, sizeof(uint32_t));
+      jfq_length = output[0];
 
-      c_encoder.setPipeline(state.expand->pipeline);
-      c_encoder.setBindGroup(0, expand_groups[0], 0, nullptr);
-      c_encoder.setBindGroup(1, expand_groups[1], 0, nullptr);
-      c_encoder.setBindGroup(2, expand_groups[2 + iterations % 2], 0, nullptr);
-      // Use 128 * 64 threads to execute the expand step.
-      c_encoder.dispatchWorkgroups(WORKGROUPS, 92 * 8, 1);
-      c_encoder.end();
-      c_encoder.release();
+      //      std::cout << "JFQ Length: " << jfq_length << std::endl;
     }
-
+    encoder = state.device.createCommandEncoder();
     encoder.copyBufferToBuffer(path_lengths, 0, path_lengths_staging, 0, PAIRS_IN_PARALLEL * sizeof(uint32_t));
     state.queue.submit(encoder.finish());
     encoder.release();
@@ -158,6 +172,7 @@ std::vector<IterativeLengthResult> iterative_length(WGPUState &state, PathFindin
   v_buffer.release();
   e_buffer.release();
   destinations.release();
+  jfq_length_staging.release();
   path_lengths.release();
   path_lengths_staging.release();
   search_info.release();
