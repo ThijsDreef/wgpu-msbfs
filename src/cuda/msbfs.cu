@@ -31,13 +31,13 @@ __global__ void identify_step(uint32_t v_length, SearchInfo *info,
                               uint32_t *bsak) {
   uint32_t c_mask = ~info->mask[threadIdx.x];
   uint32_t iteration = info->iteration;
-  if (info[blockIdx.x].jfq_length == 0 && info[blockIdx.x].iteration > 0) {
+  if (info->jfq_length == 0 && info->iteration > 0) {
     return;
   }
   info->jfq_length = 0;
   __syncthreads();
 
-  for (uint32_t i = blockIdx.y * blockDim.y + threadIdx.y; i < v_length; i += gridDim.y * blockDim.y) {
+  for (uint32_t i = blockIdx.x * blockDim.y + threadIdx.y; i < v_length; i += gridDim.x * blockDim.y) {
     uint32_t diff = (bsa[i * blockDim.x + threadIdx.x] ^ bsak[i * blockDim.x + threadIdx.x]) & c_mask;
     if (__ballot_sync(~0, diff != 0) == 0) {
       continue;
@@ -49,9 +49,9 @@ __global__ void identify_step(uint32_t v_length, SearchInfo *info,
       uint32_t index = 31 - __clz(diff);
       if (dst[index + threadIdx.x * 32] == i) {
         path_length[index + threadIdx.x * 32] = iteration;
-        c_mask &= ~(1 << index);
+        c_mask ^= (1 << index);
       }
-      diff &= ~(1u << index);
+      diff ^= (1u << index);
     }
 
     if (threadIdx.x == 0) {
@@ -63,8 +63,8 @@ __global__ void identify_step(uint32_t v_length, SearchInfo *info,
 }
 __global__ void expand_step(uint32_t v_length, uint32_t* v, uint32_t* e, SearchInfo *info, uint32_t *jfq,
                             uint32_t *bsa, uint32_t *bsak) {
-  const uint32_t length = info[blockIdx.x].jfq_length;
-  for (uint32_t i = blockIdx.y; i < length; i += gridDim.y) {
+  const uint32_t length = info->jfq_length;
+  for (uint32_t i = blockIdx.x; i < length; i += gridDim.x) {
     const uint32_t source = jfq[i];
     const uint32_t val = bsa[source * blockDim.x + threadIdx.x];
 
@@ -127,8 +127,8 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
     cudaMemset(search_info, 0, sizeof(SearchInfo));
     // Setup BSAK
     set_first_bsak<<<SEARCH_ENTRIES, 32>>>(bsak, src + offset, request.length - offset);
-    dim3 grid(1, 46 * 6, 1);
-    dim3 block(SEARCH_ENTRIES, 4, 1);
+    dim3 grid(92 * 2, 1, 1);
+    dim3 block(SEARCH_ENTRIES, 8, 1);
     uint32_t jfq_lengths = 1;
 
     for (int iteration = 0; jfq_lengths > 0; iteration++) {
@@ -143,7 +143,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
       }
 
       cudaDeviceSynchronize();
-      if (iteration % 10 == 0) {
+      if (iteration % 4 == 0) {
         cudaMemcpy(debug, search_info, sizeof(SearchInfo), cudaMemcpyDeviceToHost);
         jfq_lengths = debug[0].jfq_length;
       }
