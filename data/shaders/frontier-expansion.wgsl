@@ -1,18 +1,25 @@
-@group(0)
-@binding(0)
-var<storage> jfq: array<u32>;
+struct SearchInfo {
+  iteration: u32,
+  jfq_length: u32,
+  last_jfq: u32,
+  mask: array<u32, 32>,
+};
 
 @group(0)
-@binding(1)
-var <storage> jfq_length: u32;
-
-@group(1)
 @binding(0)
 var<storage> v: array<u32>;
 
-@group(1)
+@group(0)
 @binding(1)
 var<storage> e: array<u32>;
+
+@group(1)
+@binding(0)
+var<storage, read_write> jfq: array<u32>;
+
+@group(1)
+@binding(1)
+var<storage, read_write> search_info: array<SearchInfo>;
 
 @group(2)
 @binding(0)
@@ -22,34 +29,30 @@ var<storage> bsa: array<u32>;
 @binding(1)
 var<storage, read_write> bsak: array<atomic<u32>>;
 
-fn topdown(id: u32, stride: u32) {
-  for (var i : u32 = id; i < jfq_length; i += stride * 64u) {
-    var vertex = jfq[i];
-    var start: u32 = v[vertex];
-    var end: u32 = v[vertex + 1];
-    for (; start < end; start++) {
-      var edge = e[start];
-      atomicOr(&bsak[edge], bsa[vertex]);
-    }
-  }
-}
-
-fn bottomup(id: u32, stride: u32) {
-  for (var i : u32 = id; i < jfq_length; i += 64u * stride) {
-    var frontier = jfq[i];
-    var neighbour: u32 = v[frontier];
-    var end: u32 = v[frontier + 1];
-    for (; neighbour < end; neighbour++) {
-      var edge = e[neighbour];
-      // This requires usage of the mask
-      // bsak[frontier] |= bsa[edge];
-    }
-  }
-}
-
 @compute
-@workgroup_size(64)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
-        @builtin(num_workgroups)       num_workgroups: vec3<u32>) {
-  topdown(global_id.x, num_workgroups.x);
+@workgroup_size(32, 8, 1)
+fn main(
+  @builtin(local_invocation_id) local_id: vec3<u32>,
+  @builtin(num_workgroups) invocation_size: vec3<u32>,
+  @builtin(workgroup_id) invocation_id: vec3<u32>,
+) {
+  if (local_id.x == 0u && invocation_id.y == 0u) {
+    search_info[0].iteration += 1;
+    search_info[0].last_jfq = search_info[0].jfq_length;
+  }
+
+  var jfq_length = search_info[0].jfq_length;
+  for (var i : u32 = invocation_id.y; i < jfq_length; i += invocation_size.y) {
+    var vertex = jfq[i];
+    var val = bsa[vertex * 32 + local_id.x];
+
+    var start: u32 = v[vertex] + local_id.y;
+    var end: u32 = v[vertex + 1];
+    for (; start < end; start += 8) {
+      var edge = e[start] * 32 + local_id.x;
+      atomicOr(&bsak[edge], val);
+    }
+  }
+
+
 }

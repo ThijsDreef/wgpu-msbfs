@@ -1,4 +1,4 @@
-#include "core/util/wgpu-utils.hpp"
+#include "util/wgpu-utils.hpp"
 #include <cstdint>
 #include <cstring>
 #include <memory>

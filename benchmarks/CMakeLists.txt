@@ -15,4 +15,5 @@ add_executable(bench_wgpumsbfs bench.cpp)
 target_link_libraries(bench_wgpumsbfs
   benchmark
   ${LIB_NAME}
+  utils
 )

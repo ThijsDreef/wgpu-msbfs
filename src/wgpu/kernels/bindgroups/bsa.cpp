@@ -1,5 +1,5 @@
-#include "core/kernels/bindgroups/bsa.hpp"
-#include "core/util/wgpu-utils.hpp"
+#include "kernels/bindgroups/bsa.hpp"
+#include "util/wgpu-utils.hpp"
 #include <cstdint>
 
 BSAGroup::BSAGroup(wgpu::Device device) {

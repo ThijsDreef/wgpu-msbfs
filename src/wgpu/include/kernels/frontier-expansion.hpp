@@ -1,8 +1,8 @@
 #pragma once
 #include "webgpu/webgpu.hpp"
-#include "core/kernels/bindgroups/jfq.hpp"
-#include "core/kernels/bindgroups/csr.hpp"
-#include "core/kernels/bindgroups/bsa.hpp"
+#include "kernels/bindgroups/jfq.hpp"
+#include "kernels/bindgroups/csr.hpp"
+#include "kernels/bindgroups/bsa.hpp"
 
 class FrontierExpansion {
 private:

@@ -1,6 +1,6 @@
 #define WEBGPU_CPP_IMPLEMENTATION
-#include "core/kernels/frontier-expansion.hpp"
-#include "core/kernels/frontier-identification.hpp"
+#include "kernels/frontier-expansion.hpp"
+#include "kernels/frontier-identification.hpp"
 #include <memory>
 #include "wgpu/wgpu-state.hpp"
 
@@ -15,7 +15,7 @@ void error(WGPUDeviceImpl *const * x, WGPUErrorType type, WGPUStringView msg, vo
 WGPUState::WGPUState() {
   instance = wgpu::createInstance({});
   wgpu::RequestAdapterOptions options;
-  options.powerPreference = wgpu::PowerPreference::LowPower;
+  options.powerPreference = wgpu::PowerPreference::HighPerformance;
   wgpu::Adapter adapter = instance.requestAdapter(options);
 
   wgpu::FeatureName required_features[] = {
@@ -30,13 +30,14 @@ WGPUState::WGPUState() {
 
   wgpu::Limits limits;
   limits.setDefault();
-  limits.maxStorageBuffersPerShaderStage = 7;
-
-  wgpu::AdapterInfo info;
-  adapter.getInfo(&info);
-  std::cout << info.vendor.data << std::endl;
-  std::cout << info.device.data << std::endl;
+  // limits.maxStorageBuffersPerShaderStage = 7;
+  // TODO: this should probably be dynamically set.
+  // This should now reject any GPU not being able to handle SF300
+  limits.maxBufferSize = 273255928;
+  limits.maxStorageBufferBindingSize = 273255928;
+  limits.maxComputeInvocationsPerWorkgroup = 512;
   device_desc.requiredLimits = &limits;
+
 
   device = adapter.requestDevice(device_desc);
   queue = device.getQueue();

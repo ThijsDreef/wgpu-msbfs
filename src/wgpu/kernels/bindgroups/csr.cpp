@@ -1,5 +1,5 @@
-#include "core/kernels/bindgroups/csr.hpp"
-#include "core/util/wgpu-utils.hpp"
+#include "kernels/bindgroups/csr.hpp"
+#include "util/wgpu-utils.hpp"
 
 CSRGroup::CSRGroup(wgpu::Device device) {
   this->device = device;

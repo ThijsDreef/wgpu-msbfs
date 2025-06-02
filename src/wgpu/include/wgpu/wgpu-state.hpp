@@ -1,6 +1,6 @@
 #pragma once
-#include "core/kernels/frontier-expansion.hpp"
-#include "core/kernels/frontier-identification.hpp"
+#include "kernels/frontier-expansion.hpp"
+#include "kernels/frontier-identification.hpp"
 #include "webgpu/webgpu.hpp"
 
 class WGPUState {

@@ -1,6 +1,12 @@
-#include "core/kernels/bindgroups/jfq.hpp"
-#include "core/util/wgpu-utils.hpp"
+#include "kernels/bindgroups/jfq.hpp"
+#include "util/wgpu-utils.hpp"
 #include <cstdint>
+struct SearchInfo {
+  uint32_t iteration;
+  uint32_t jfq_length;
+  uint32_t last_jfq;
+  uint32_t mask[32];
+};
 
 JFQGroup::JFQGroup(wgpu::Device device, bool write) {
   this->device = device;
@@ -10,28 +16,29 @@ JFQGroup::JFQGroup(wgpu::Device device, bool write) {
 
   wgpu::BindGroupLayoutEntry entries[] = {
     getComputeEntry(0, access, false, sizeof(uint32_t)),
-    getComputeEntry(1, access, false, sizeof(uint32_t)),
+    getComputeEntry(1, access, false, sizeof(SearchInfo)),
   };
 
   wgpu::BindGroupLayoutDescriptor desc;
   desc.entries = entries;
-
+  desc.label = getStringViewFromCString("jfq group");
   desc.entryCount = 2;
   layout = device.createBindGroupLayout(desc);
 }
 
 
-wgpu::BindGroup JFQGroup::getBindGroup(wgpu::Buffer jfq, wgpu::Buffer jfq_length, uint64_t length) {
+wgpu::BindGroup JFQGroup::getBindGroup(wgpu::Buffer jfq, wgpu::Buffer search_info, uint64_t length, uint32_t workgroups) {
   wgpu::BindGroupDescriptor desc;
 
   wgpu::BindGroupEntry entries[] = {
     getBindGroupBufferEntry(jfq, 0, 0, length),
-    getBindGroupBufferEntry(jfq_length, 1, 0, sizeof(uint32_t)),
+    getBindGroupBufferEntry(search_info, 1, 0, sizeof(SearchInfo) * workgroups),
   };
 
   desc.layout = layout;
   desc.entries = entries;
   desc.entryCount = 2;
+  desc.label = getStringViewFromCString("bindgroup jfq");
 
   return device.createBindGroup(desc);
 }

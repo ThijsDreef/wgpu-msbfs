@@ -1,35 +1,10 @@
+#include "utils/file-loader.hpp"
 #include "msbfs.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <gtest/gtest.h>
-#include <sys/mman.h>
-
-#include "sys/mman.h"
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-struct mmapped_file {
-  void *data;
-  int fd;
-  size_t length;
-};
-
-#define UNIX
-
-#ifdef UNIX
-mmapped_file file_to_mmap(const char *path) {
-  mmapped_file file;
-  file.fd = open(path, O_RDONLY);
-  struct stat sb;
-  fstat(file.fd, &sb);
-  file.length = sb.st_size;
-  file.data = mmap(NULL, sb.st_size, PROT_WRITE, MAP_PRIVATE, file.fd, 0);
-  return file;
-}
-#endif
 
 bool check_against_csv(const char *path,
                        std::vector<IterativeLengthResult> results) {
@@ -41,7 +16,8 @@ bool check_against_csv(const char *path,
     IterativeLengthResult t;
     while (std::getline(file, line)) {
       if (it >= results.size()) {
-        std::cout << "More results then in CSV" << std::endl;
+        std::cout << "More results in CSV then found" << std::endl;
+        std::cout << "Last correct result was " << t.src << "," << t.dst << "," << t.length << std::endl;
         return false;
       }
       sscanf(line.c_str(), "%u,%u,%u", &t.src, &t.dst, &t.length);
@@ -61,11 +37,11 @@ bool check_against_csv(const char *path,
 
 #define CREATE_TEST_CASE(scale, pairs)                                         \
   TEST(MSBFSIterativeLength, scale##pairs) {                                   \
-    mmapped_file files[] = {                                                   \
-        file_to_mmap("data/" #scale "/" #pairs "-src.bin"),                    \
-        file_to_mmap("data/" #scale "/" #pairs "-dst.bin"),                    \
-        file_to_mmap("data/" #scale "/v.bin"),                                 \
-        file_to_mmap("data/" #scale "/e.bin"),                                 \
+    BinaryLoadedFile files[] = {                                               \
+        load_file("data/" #scale "/" #pairs "-src.bin"),                       \
+        load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
+        load_file("data/" #scale "/v.bin"),                                    \
+        load_file("data/" #scale "/e.bin"),                                    \
     };                                                                         \
     std::vector<IterativeLengthResult> results = iterative_length(             \
         {                                                                      \
@@ -126,6 +102,27 @@ CREATE_TEST_CASE(30, 16384)
 CREATE_TEST_CASE(30, 32768)
 CREATE_TEST_CASE(30, 65536)
 
+CREATE_TEST_CASE(100, 1)
+CREATE_TEST_CASE(100, 10)
+CREATE_TEST_CASE(100, 100)
+CREATE_TEST_CASE(100, 1000)
+CREATE_TEST_CASE(100, 2048)
+CREATE_TEST_CASE(100, 4096)
+CREATE_TEST_CASE(100, 8192)
+CREATE_TEST_CASE(100, 16384)
+CREATE_TEST_CASE(100, 32768)
+CREATE_TEST_CASE(100, 65536)
+
+CREATE_TEST_CASE(300, 1)
+CREATE_TEST_CASE(300, 10)
+CREATE_TEST_CASE(300, 100)
+CREATE_TEST_CASE(300, 1000)
+CREATE_TEST_CASE(300, 2048)
+CREATE_TEST_CASE(300, 4096)
+CREATE_TEST_CASE(300, 8192)
+CREATE_TEST_CASE(300, 16384)
+CREATE_TEST_CASE(300, 32768)
+CREATE_TEST_CASE(300, 65536)
 
 TEST(MSBFSIterativeLength, GraphBlas) {
   std::vector<uint32_t> src = {0, 0, 0, 0, 0, 0};

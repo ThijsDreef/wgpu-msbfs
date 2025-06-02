@@ -11,6 +11,7 @@ add_executable(test_wgpumsbfs test.cpp)
 target_link_libraries(test_wgpumsbfs
   gtest
   ${LIB_NAME}
+  utils
 )
 
 add_test(
