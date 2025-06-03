@@ -1,4 +1,5 @@
 #define WEBGPU_CPP_IMPLEMENTATION
+#include "include/kernels/set-first-bsak.hpp"
 #include "kernels/frontier-expansion.hpp"
 #include "kernels/frontier-identification.hpp"
 #include <memory>
@@ -30,7 +31,6 @@ WGPUState::WGPUState() {
 
   wgpu::Limits limits;
   limits.setDefault();
-  // limits.maxStorageBuffersPerShaderStage = 7;
   // TODO: this should probably be dynamically set.
   // This should now reject any GPU not being able to handle SF300
   limits.maxBufferSize = 273255928;
@@ -43,6 +43,7 @@ WGPUState::WGPUState() {
   queue = device.getQueue();
   expand = std::unique_ptr<FrontierExpansion>(new FrontierExpansion(device));
   identify = std::unique_ptr<FrontierIdentification>(new FrontierIdentification(device));
+  set_bsak = std::unique_ptr<SetFirstBSAK>(new SetFirstBSAK(device));
 }
 
 WGPUState::~WGPUState() {

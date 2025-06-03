@@ -12,8 +12,10 @@ add_library(${LIB_NAME} ${LIB_TYPE}
   util/wgpu-utils.cpp
   util/shader-locator.cpp
   kernels/frontier-identification.cpp
+  kernels/set-first-bsak.cpp
   kernels/frontier-expansion.cpp
   kernels/bindgroups/bsa.cpp
+  kernels/bindgroups/set-bsak.cpp
   kernels/bindgroups/csr.cpp
   kernels/bindgroups/iterative-length.cpp
   kernels/bindgroups/jfq.cpp

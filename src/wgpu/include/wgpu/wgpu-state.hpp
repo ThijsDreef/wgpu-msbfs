@@ -1,6 +1,7 @@
 #pragma once
 #include "kernels/frontier-expansion.hpp"
 #include "kernels/frontier-identification.hpp"
+#include "kernels/set-first-bsak.hpp"
 #include "webgpu/webgpu.hpp"
 
 class WGPUState {
@@ -13,4 +14,5 @@ public:
   wgpu::Queue queue;
   std::unique_ptr<FrontierExpansion> expand;
   std::unique_ptr<FrontierIdentification> identify;
+  std::unique_ptr<SetFirstBSAK> set_bsak;
 };
