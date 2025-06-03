@@ -36,7 +36,7 @@ bool check_against_csv(const char *path,
 }
 
 #define CREATE_TEST_CASE(scale, pairs)                                         \
-  TEST(MSBFSIterativeLength, scale##pairs) {                                   \
+  TEST(MSBFSIterativeLength, Scale##scale##Pairs##pairs) {                                   \
     BinaryLoadedFile files[] = {                                               \
         load_file("data/" #scale "/" #pairs "-src.bin"),                       \
         load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
@@ -102,27 +102,27 @@ CREATE_TEST_CASE(30, 16384)
 CREATE_TEST_CASE(30, 32768)
 CREATE_TEST_CASE(30, 65536)
 
-//CREATE_TEST_CASE(100, 1)
-//CREATE_TEST_CASE(100, 10)
-//CREATE_TEST_CASE(100, 100)
-//CREATE_TEST_CASE(100, 1000)
-//CREATE_TEST_CASE(100, 2048)
-//CREATE_TEST_CASE(100, 4096)
-//CREATE_TEST_CASE(100, 8192)
-//CREATE_TEST_CASE(100, 16384)
-//CREATE_TEST_CASE(100, 32768)
-//CREATE_TEST_CASE(100, 65536)
+CREATE_TEST_CASE(100, 1)
+CREATE_TEST_CASE(100, 10)
+CREATE_TEST_CASE(100, 100)
+CREATE_TEST_CASE(100, 1000)
+CREATE_TEST_CASE(100, 2048)
+CREATE_TEST_CASE(100, 4096)
+CREATE_TEST_CASE(100, 8192)
+CREATE_TEST_CASE(100, 16384)
+CREATE_TEST_CASE(100, 32768)
+CREATE_TEST_CASE(100, 65536)
 
-//CREATE_TEST_CASE(300, 1)
-//CREATE_TEST_CASE(300, 10)
-//CREATE_TEST_CASE(300, 100)
-//CREATE_TEST_CASE(300, 1000)
-//CREATE_TEST_CASE(300, 2048)
-//CREATE_TEST_CASE(300, 4096)
-//CREATE_TEST_CASE(300, 8192)
-//CREATE_TEST_CASE(300, 16384)
-//CREATE_TEST_CASE(300, 32768)
-//CREATE_TEST_CASE(300, 65536)
+CREATE_TEST_CASE(300, 1)
+CREATE_TEST_CASE(300, 10)
+CREATE_TEST_CASE(300, 100)
+CREATE_TEST_CASE(300, 1000)
+CREATE_TEST_CASE(300, 2048)
+CREATE_TEST_CASE(300, 4096)
+CREATE_TEST_CASE(300, 8192)
+CREATE_TEST_CASE(300, 16384)
+CREATE_TEST_CASE(300, 32768)
+CREATE_TEST_CASE(300, 65536)
 
 TEST(MSBFSIterativeLength, GraphBlas) {
   std::vector<uint32_t> src = {0, 0, 0, 0, 0, 0};

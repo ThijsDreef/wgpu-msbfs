@@ -1,21 +1,17 @@
 # WebGPU Multisource Breadth first search
-To build the project first generate the test data using the generate-tests.py in
-the scripts folder. Which should be ran from the root folder.
-
 ## Reproducing test results
+Don't forget to setup a python venv before installing dependencies
 ```
 pip install -r requirements.txt
-python scripts/generate-tests.py
-cmake -s . -b build/cuda --DBACKEND=CUDA
-cmake -s . -b build/dawn --DBACKEND=DAWN
-cmake -s . -b build/wgpu --DBACKEND=WGPU
+python scripts/build.py
 ```
-While the WebGPUDistribution dawn source build fails one can use the prebuild
-version
-```
-cmake -s . -b build/dawn-non-source -DBACKEND=DAWN -DWEBGPU_BUILD_FROM_SOURCE=OFF
-```
+Running this will generate the test data set, ground truth, run correctness
+testing and run the benchmark for all three backends CUDA, WGPU and DAWN.
+## Development setup
+After running the `scripts/build.py` you will have three folder inside of the
+build directory cuda, dawn and wgpu. Building after having changed files can be
+done using `cmake --build build/${wgpu|cuda|dawn}`.
 
+Tests can be run from the top level folder using `./build/${wgpu|cuda|dawn}/tests/test_wgpumsbfs`.
 
-## Building with dawn / wgpu
-Setup a cmake build directory using either the -DWEBGPU_BACKEND=DAWN -DWEBGPU_BACKEND=WGPU cmake flags.
+Benchmarking can be run from the top level folder using `./build/${wgpu|cuda|dawn}/benchmarks/bench_wgpumsbfs`.
