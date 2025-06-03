@@ -1,9 +1,9 @@
 struct SearchInfo {
+  offset: u32,
   iteration: u32,
   jfq_length: atomic<u32>,
   last_jfq: u32,
   mask: array<atomic<u32>, 32>,
-
 };
 
 @group(0)
@@ -12,7 +12,7 @@ var<storage, read_write> jfq: array<u32>;
 
 @group(0)
 @binding(1)
-var<storage, read_write> search_info: array<SearchInfo>;
+var<storage, read_write> search_info: SearchInfo;
 
 @group(1)
 @binding(0)
@@ -40,9 +40,9 @@ fn main(
   @builtin(local_invocation_id) local_id: vec3<u32>,
   @builtin(workgroup_id) invocation: vec3<u32>,
   @builtin(num_workgroups) invocation_size: vec3<u32>) {
-  var c_mask = ~atomicLoad(&search_info[0].mask[local_id.x]);
-  var iteration = search_info[0].iteration;
-  var dst_offset = local_id.x * workgroup_size;
+  var c_mask = ~atomicLoad(&search_info.mask[local_id.x]);
+  var iteration = search_info.iteration;
+  var dst_offset = local_id.x * workgroup_size + search_info.offset;
   for (var i : u32 = invocation.y; i < arrayLength(&jfq); i += invocation_size.y) {
     var bsa_offset = i * workgroup_size + local_id.x;
     var diff : u32 = (bsa[bsa_offset] ^ bsak[bsa_offset]) & c_mask;
@@ -53,7 +53,7 @@ fn main(
       var index: u32 = countTrailingZeros(diff);
       if (dst[dst_offset + index] == i) {
         path_length[dst_offset + index] = iteration;
-        atomicOr(&search_info[0].mask[local_id.x], (1u << index));
+        atomicOr(&search_info.mask[local_id.x], (1u << index));
         c_mask ^= 1u << index;
       }
       diff ^= (1u << index);
@@ -66,7 +66,7 @@ fn main(
         acc |= prefix[j];
       }
       if (acc > 0) {
-        jfq[atomicAdd(&search_info[0].jfq_length, 1u)] = i;
+        jfq[atomicAdd(&search_info.jfq_length, 1u)] = i;
       }
     }
     workgroupBarrier();

@@ -1,12 +1,6 @@
 #include "kernels/bindgroups/jfq.hpp"
 #include "util/wgpu-utils.hpp"
-#include <cstdint>
-struct SearchInfo {
-  uint32_t iteration;
-  uint32_t jfq_length;
-  uint32_t last_jfq;
-  uint32_t mask[32];
-};
+#include "util/search-info.hpp"
 
 JFQGroup::JFQGroup(wgpu::Device device, bool write) {
   this->device = device;

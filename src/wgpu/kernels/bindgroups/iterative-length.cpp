@@ -17,7 +17,7 @@ IterativeLengthGroup::IterativeLengthGroup(wgpu::Device device) {
   layout = device.createBindGroupLayout(desc);
 }
 
-wgpu::BindGroup IterativeLengthGroup::getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths, uint32_t request_length) {
+wgpu::BindGroup IterativeLengthGroup::getBindGroup(wgpu::Buffer dst, wgpu::Buffer path_lengths, uint64_t request_length) {
   wgpu::BindGroupDescriptor desc;
 
   wgpu::BindGroupEntry entries[] = {

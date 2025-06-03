@@ -1,4 +1,5 @@
 struct SearchInfo {
+  offset: u32,
   iteration: u32,
   jfq_length: u32,
   last_jfq: u32,
@@ -19,7 +20,7 @@ var<storage, read_write> jfq: array<u32>;
 
 @group(1)
 @binding(1)
-var<storage, read_write> search_info: array<SearchInfo>;
+var<storage, read_write> search_info: SearchInfo;
 
 @group(2)
 @binding(0)
@@ -37,11 +38,11 @@ fn main(
   @builtin(workgroup_id) invocation_id: vec3<u32>,
 ) {
   if (local_id.x == 0u && invocation_id.y == 0u) {
-    search_info[0].iteration += 1;
-    search_info[0].last_jfq = search_info[0].jfq_length;
+    search_info.iteration += 1;
+    search_info.last_jfq = search_info.jfq_length;
   }
 
-  var jfq_length = search_info[0].jfq_length;
+  var jfq_length = search_info.jfq_length;
   for (var i : u32 = invocation_id.y; i < jfq_length; i += invocation_size.y) {
     var vertex = jfq[i];
     var val = bsa[vertex * 32 + local_id.x];

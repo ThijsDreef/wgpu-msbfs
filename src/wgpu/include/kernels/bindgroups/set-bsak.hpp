@@ -11,8 +11,6 @@ public:
   wgpu::BindGroup getBindGroup(
     wgpu::Buffer offset,
     wgpu::Buffer src,
-    wgpu::Buffer dest,
-    wgpu::Buffer target_dst,
     wgpu::Buffer bsak,
     uint64_t v_length,
     uint64_t request_length
