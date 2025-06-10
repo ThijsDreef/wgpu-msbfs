@@ -63,7 +63,7 @@ std::unique_ptr<uint32_t[]> getMappedResult(WGPUState& state, wgpu::Buffer buffe
   info.callback = handleBufferMap;
   info.userdata1 = &buffer;
   info.userdata2 = &copy;
-  auto x = buffer.mapAsync(wgpu::MapMode::Read, 0, size, info);
+  auto x = wgpuBufferMapAsync(buffer, wgpu::MapMode::Read, 0, size, info);
   wgpu::FutureWaitInfo wait_info;
   wait_info.setDefault();
   wait_info.future = x;
@@ -72,6 +72,9 @@ std::unique_ptr<uint32_t[]> getMappedResult(WGPUState& state, wgpu::Buffer buffe
     state.device.poll(true, nullptr);
 #else
     state.instance.waitAny(1, &wait_info, 0);
+#ifdef __EMSCRIPTEN__
+     emscripten_sleep(0);
+#endif
 #endif
   }
   buffer.unmap();

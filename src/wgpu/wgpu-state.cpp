@@ -35,7 +35,7 @@ WGPUState::WGPUState() {
   // This should now reject any GPU not being able to handle SF300
   limits.maxBufferSize = 273255928;
   limits.maxStorageBufferBindingSize = 273255928;
-  limits.maxComputeInvocationsPerWorkgroup = 512;
+  limits.maxComputeInvocationsPerWorkgroup = 256;
   device_desc.requiredLimits = &limits;
 
 

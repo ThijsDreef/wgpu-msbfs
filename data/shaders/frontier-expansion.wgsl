@@ -54,6 +54,4 @@ fn main(
       atomicOr(&bsak[edge], val);
     }
   }
-
-
 }

@@ -5,7 +5,6 @@
 #include "util/search-info.hpp"
 WGPUState state = WGPUState();
 
-
 std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr) {
   TimingInfo timing_info;
   return iterative_length(request, csr, timing_info);
@@ -111,7 +110,11 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
     encoder.release();
 
     uint32_t jfq_length = 1;
+#ifdef __EMSCRIPTEN__
+    uint32_t target_iterations = 8;
+#else
     uint32_t target_iterations = 2;
+#endif
     while (jfq_length > 0) {
       encoder = state.device.createCommandEncoder();
       for (size_t iterations = 0; iterations < target_iterations; iterations++) {

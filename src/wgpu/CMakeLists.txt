@@ -23,3 +23,13 @@ add_library(${LIB_NAME} ${LIB_TYPE}
 
 target_link_libraries(${LIB_NAME} webgpu utils)
 target_include_directories(${LIB_NAME} PUBLIC include/)
+
+if(BACKEND STREQUAL "EMDAWNWEBGPU")
+  add_executable(wgpu-msbfs-web main.cpp)
+  add_executable(wgpu-msbfs-all main.cpp)
+
+  target_link_options(wgpu-msbfs-web PRIVATE -sMODULARIZE=1 -sEXPORT_ALL -sEXPORT_ES6=1 -sASYNCIFY -sENVIRONMENT='web' -sALLOW_MEMORY_GROWTH -sEXPORTED_RUNTIME_METHODS=["ccall"])
+  target_link_options(wgpu-msbfs-all PRIVATE -sASYNCIFY -sALLOW_MEMORY_GROWTH)
+  target_link_libraries(wgpu-msbfs-web ${LIB_NAME})
+  target_link_libraries(wgpu-msbfs-all ${LIB_NAME})
+endif()
