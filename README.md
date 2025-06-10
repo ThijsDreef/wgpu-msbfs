@@ -15,3 +15,10 @@ done using `cmake --build build/${wgpu|cuda|dawn}`.
 Tests can be run from the top level folder using `./build/${wgpu|cuda|dawn}/tests/test_wgpumsbfs`.
 
 Benchmarking can be run from the top level folder using `./build/${wgpu|cuda|dawn}/benchmarks/bench_wgpumsbfs`.
+## Building for webassembly
+When building to webassembly only the main library is built. To generate the
+correct build files use the following command.
+```
+emcmake cmake -S . -B build/emscripten -DBACKEND=EMDAWNWEBGPU
+```
+To use the generated wasm/js files see the web implementation of this repository.
