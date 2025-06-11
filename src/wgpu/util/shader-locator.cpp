@@ -3,6 +3,7 @@
 #include <cstring>
 #include <stdio.h>
 
+
 #ifdef USE_FILES
 char *getShaderFile(const char *value) { return (char *)load_file(value).data; }
 #else

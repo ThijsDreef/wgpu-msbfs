@@ -13,6 +13,7 @@ public:
     wgpu::Buffer src,
     wgpu::Buffer bsak,
     uint64_t v_length,
-    uint64_t request_length
+    uint64_t request_length,
+    uint32_t workgroups
   );
 };

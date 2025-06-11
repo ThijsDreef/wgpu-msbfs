@@ -1,5 +1,5 @@
 #include <cstdint>
-#include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include "msbfs.hpp"
@@ -9,19 +9,17 @@
 // CUDA runtime
 #include <cuda_runtime.h>
 #include <cuda_profiler_api.h>
-#define SEARCHES_PER_ENTRY 32
-#define SEARCH_ENTRIES 32
-#define SEARCHES_IN_WORKGROUP SEARCHES_PER_ENTRY * SEARCH_ENTRIES
 
 struct SearchInfo {
   uint32_t iteration;
-  uint32_t mask[SEARCH_ENTRIES];
+  uint32_t mask;
   uint32_t jfq_length;
 };
 
-__global__ void set_first_bsak(uint32_t *bsak, uint32_t* src, uint32_t request_length) {
-  for (uint32_t i = threadIdx.x; i < 32 && i + blockIdx.x * 32 < request_length; i += blockDim.x) {
-    atomicOr(bsak + src[i + blockIdx.x * 32] * gridDim.x + blockIdx.x, 1u << i);
+__global__ void set_first_bsak(uint32_t *bsak, uint32_t* src, uint32_t v_length) {
+  for (uint32_t i = threadIdx.x; i < 32; i += blockDim.x) {
+    uint32_t offset = (blockIdx.x * v_length);
+    atomicOr(bsak + offset + src[i + blockIdx.x * 32], 1u << i);
   }
 }
 
@@ -29,49 +27,48 @@ __global__ void identify_step(uint32_t v_length, SearchInfo *info,
                               uint32_t *jfq, uint32_t *dst,
                               uint32_t *path_length, uint32_t *bsa,
                               uint32_t *bsak) {
-  uint32_t c_mask = ~info->mask[threadIdx.x];
-  uint32_t iteration = info->iteration;
-  if (info->jfq_length == 0 && info->iteration > 0) {
+  uint32_t v_offset = v_length * blockIdx.x;
+  uint32_t c_mask = ~(info[blockIdx.x].mask);
+  uint32_t iteration = info[blockIdx.x].iteration;
+  if (info[blockIdx.x].jfq_length == 0 && info[blockIdx.x].iteration > 0) {
     return;
   }
-  info->jfq_length = 0;
+  info[blockIdx.x].jfq_length = 0;
   __syncthreads();
 
-  for (uint32_t i = blockIdx.x * blockDim.y + threadIdx.y; i < v_length; i += gridDim.x * blockDim.y) {
-    uint32_t diff = (bsa[i * blockDim.x + threadIdx.x] ^ bsak[i * blockDim.x + threadIdx.x]) & c_mask;
-    if (__ballot_sync(~0, diff != 0) == 0) {
-      continue;
-    }
+  for (uint32_t i = threadIdx.x + blockIdx.y * blockDim.x; i < v_length; i += blockDim.x * gridDim.y) {
+    uint32_t diff = (bsa[v_offset + i] ^ bsak[v_offset + i]) & c_mask;
+    if (diff == 0) continue;
 
-    bsak[i * blockDim.x + threadIdx.x] |= bsa[i * blockDim.x + threadIdx.x];
+    bsak[v_offset + i] |= bsa[v_offset + i];
+    uint32_t id = atomicAdd(&info[blockIdx.x].jfq_length, 1u);
+    jfq[v_offset + id] = i;
+
     uint32_t length = __popc(diff);
     for (uint32_t x = 0; x < length; x++) {
       uint32_t index = 31 - __clz(diff);
-      if (dst[index + threadIdx.x * 32] == i) {
-        path_length[index + threadIdx.x * 32] = iteration;
-        c_mask ^= (1 << index);
+      if (dst[index + blockIdx.x * 32] == i) {
+        path_length[index + blockIdx.x * 32] = iteration;
+        c_mask &= ~(1 << index);
       }
-      diff ^= (1u << index);
-    }
-
-    if (threadIdx.x == 0) {
-      jfq[atomicAdd(&info->jfq_length, 1u)] = i;
+      diff &= ~(1u << index);
     }
   }
-  atomicOr(&info->mask[threadIdx.x], ~c_mask);
-  info->iteration = iteration + 1;
+  atomicOr(&info[blockIdx.x].mask, ~c_mask);
+  info[blockIdx.x].iteration = iteration + 1;
 }
 __global__ void expand_step(uint32_t v_length, uint32_t* v, uint32_t* e, SearchInfo *info, uint32_t *jfq,
                             uint32_t *bsa, uint32_t *bsak) {
-  const uint32_t length = info->jfq_length;
-  for (uint32_t i = blockIdx.x; i < length; i += gridDim.x) {
-    const uint32_t source = jfq[i];
-    const uint32_t val = bsa[source * blockDim.x + threadIdx.x];
+  const uint32_t v_offset = v_length * blockIdx.x;
+  const uint32_t length = info[blockIdx.x].jfq_length;
+  for (uint32_t i = threadIdx.x + blockIdx.y * blockDim.x; i < length; i += blockDim.x * gridDim.y) {
+    const uint32_t source = jfq[v_offset + i];
+    const uint32_t val = bsa[v_offset + source];
 
     uint32_t start = v[source] + threadIdx.y;
     const uint32_t end = v[source + 1];
     for (; start < end; start += blockDim.y) {
-      atomicOr(bsak + e[start] * blockDim.x + threadIdx.x, val);
+      atomicOr(bsak + v_offset + e[start], val);
     }
   }
 }
@@ -85,13 +82,17 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
 std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
                                                     CSR csr, TimingInfo &info) {
   cudaSetDevice(0);
+  char* workgroups = std::getenv("WORKGROUPS");
+  const size_t WORKGROUPS = workgroups == 0 ? 1 : atoi(workgroups);
+  const size_t SEARCHES_IN_WORKGROUP = 32;
+  const size_t PAIRS_IN_PARALLEL = WORKGROUPS * SEARCHES_IN_WORKGROUP;
 
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 
   uint32_t *src, *bsa, *bsak, *jfq, *v_buffer, *e_buffer, *dst, *path_lengths;
   uint32_t *host_result = new uint32_t[request.length];
-  SearchInfo debug[1];
+  uint32_t debug[WORKGROUPS * 3];
   SearchInfo *search_info;
 
   std::vector<IterativeLengthResult> results;
@@ -100,14 +101,14 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
   cudaMalloc(&v_buffer, v_size);
   cudaMalloc(&e_buffer, e_size);
 
-  cudaMalloc(&bsa, v_size * SEARCH_ENTRIES);
-  cudaMalloc(&bsak, v_size * SEARCH_ENTRIES);
-  cudaMalloc(&jfq, v_size);
+  cudaMalloc(&bsa, v_size * WORKGROUPS);
+  cudaMalloc(&bsak, v_size * WORKGROUPS);
+  cudaMalloc(&jfq, v_size * WORKGROUPS);
 
   cudaMalloc(&dst, sizeof(uint32_t) * request.length);
   cudaMalloc(&path_lengths, sizeof(uint32_t) * request.length);
 
-  cudaMalloc(&search_info, sizeof(SearchInfo));
+  cudaMalloc(&search_info, sizeof(SearchInfo) * WORKGROUPS);
 
   cudaMalloc(&src, request.length * sizeof(uint32_t));
 
@@ -120,32 +121,33 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
   cuda_csr.v = v_buffer;
   cuda_csr.e = e_buffer;
 
-  for (size_t offset = 0; offset < request.length; offset += SEARCHES_IN_WORKGROUP) {
+  for (size_t offset = 0; offset < request.length; offset += PAIRS_IN_PARALLEL) {
     // Clear BSA, BSAK, Destinations, Search Info.
-    cudaMemset(bsa, 0, v_size * SEARCH_ENTRIES);
-    cudaMemset(bsak, 0, v_size * SEARCH_ENTRIES);
-    cudaMemset(search_info, 0, sizeof(SearchInfo));
+    cudaMemset(bsa, 0, v_size * WORKGROUPS);
+    cudaMemset(bsak, 0, v_size * WORKGROUPS);
+    cudaMemset(search_info, 0, sizeof(SearchInfo) * WORKGROUPS);
     // Setup BSAK
-    set_first_bsak<<<SEARCH_ENTRIES, 32>>>(bsak, src + offset, request.length - offset);
-    dim3 grid(92 * 2, 1, 1);
-    dim3 block(SEARCH_ENTRIES, 8, 1);
+    set_first_bsak<<<WORKGROUPS, 32>>>(bsak, src + offset, csr.v_length);
+    dim3 grid(WORKGROUPS, 92 / WORKGROUPS, 1);
+    dim3 block(128, 8, 1);
     uint32_t jfq_lengths = 1;
-
     for (int iteration = 0; jfq_lengths > 0; iteration++) {
       if (iteration % 2 == 1) {
-        identify_step<<<grid, dim3(SEARCH_ENTRIES, 4, 1)>>>(csr.v_length, search_info, jfq, dst + offset, path_lengths + offset, bsa, bsak);
+        identify_step<<<grid, 256>>>(csr.v_length, search_info, jfq, dst + offset, path_lengths + offset, bsa, bsak);
         cudaDeviceSynchronize();
         expand_step<<<grid, block>>>(cuda_csr.v_length, v_buffer, e_buffer, search_info, jfq, bsa, bsak);
       } else {
-        identify_step<<<grid, dim3(SEARCH_ENTRIES, 4, 1)>>>(csr.v_length, search_info, jfq, dst + offset, path_lengths + offset, bsak, bsa);
+        identify_step<<<grid, 256>>>(csr.v_length, search_info, jfq, dst + offset, path_lengths + offset, bsak, bsa);
         cudaDeviceSynchronize();
         expand_step<<<grid, block>>>(cuda_csr.v_length, v_buffer, e_buffer, search_info, jfq, bsak, bsa);
       }
-
       cudaDeviceSynchronize();
       if (iteration % 4 == 0) {
-        cudaMemcpy(debug, search_info, sizeof(SearchInfo), cudaMemcpyDeviceToHost);
-        jfq_lengths = debug[0].jfq_length;
+        cudaMemcpy(debug, search_info, WORKGROUPS * sizeof(SearchInfo), cudaMemcpyDeviceToHost);
+        jfq_lengths = 0;
+        for (size_t i = 0; i < WORKGROUPS; i++) {
+          jfq_lengths += debug[2 + 3 * i];
+        }
       }
      }
   }

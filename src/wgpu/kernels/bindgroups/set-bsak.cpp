@@ -25,12 +25,14 @@ wgpu::BindGroup SetBSAKGroup::getBindGroup(
   wgpu::Buffer src,
   wgpu::Buffer bsak,
   uint64_t v_length,
-  uint64_t request_length) {
+  uint64_t request_length,
+  uint32_t workgroups
+) {
 
   wgpu::BindGroupEntry entries[] = {
-    getBindGroupBufferEntry(info, 0, 0, sizeof(SearchInfo)),
+    getBindGroupBufferEntry(info, 0, 0, sizeof(SearchInfo) * workgroups),
     getBindGroupBufferEntry(src, 1, 0, sizeof(uint32_t) * request_length),
-    getBindGroupBufferEntry(bsak, 2, 0, sizeof(uint32_t) * v_length * 32),
+    getBindGroupBufferEntry(bsak, 2, 0, sizeof(uint32_t) * v_length * workgroups),
   };
 
   wgpu::BindGroupDescriptor desc;

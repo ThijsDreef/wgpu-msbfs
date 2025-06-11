@@ -1,14 +1,14 @@
 struct SearchInfo {
   offset: u32,
   iteration: u32,
+  mask: u32,
   jfq_length: u32,
   last_jfq: u32,
-  mask: array<u32, 32>,
 };
 
 @group(0)
 @binding(0)
-var<storage, read> info : SearchInfo;
+var<storage, read> info : array<SearchInfo>;
 @group(0)
 @binding(1)
 var<storage, read> src : array<u32>;
@@ -23,13 +23,12 @@ fn main(
   @builtin(workgroup_id) invocation: vec3<u32>,
   @builtin(num_workgroups) invocation_size: vec3<u32>
 ) {
-  if (local_id.x + invocation.x * invocation_size.x >= arrayLength(&src)) {
+  var index = local_id.x + info[invocation.x].offset;
+
+  if (index >= arrayLength(&src)) {
     return;
   }
-
-  var index = local_id.x + invocation.x * invocation_size.x;
-  // Copy dst -> target_dst
-  var temp = src[index + info.offset] * invocation_size.x + invocation.x;
-  // set BSAK
+  var v_size = arrayLength(&bsak) / invocation_size.x;
+  var temp = src[index] + v_size * invocation.x;
   atomicOr(&bsak[temp], 1u << local_id.x);
 }
