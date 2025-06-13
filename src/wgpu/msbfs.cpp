@@ -5,13 +5,15 @@
 #include "util/search-info.hpp"
 WGPUState state = WGPUState();
 
-std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr) {
+std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr, CSR reverse_csr) {
   TimingInfo timing_info;
-  return iterative_length(request, csr, timing_info);
+  return iterative_length(request, csr, reverse_csr, timing_info);
 }
 
 
-std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr, TimingInfo& timing_info) {
+std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr, CSR reverse_csr, TimingInfo& timing_info) {
+  assert(csr.v_length == reverse_csr.v_length);
+  assert(csr.e_length == reverse_csr.e_length);
   uint64_t v_size = csr.v_length * sizeof(uint32_t);
   uint64_t e_size = csr.e_length * sizeof(uint32_t);
 
@@ -23,10 +25,10 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
 
   int flags = wgpu::BufferUsage::Storage |
               wgpu::BufferUsage::CopyDst;
-  wgpu::BufferDescriptor desc = getBufferDescriptor(v_size, false, flags);
+  wgpu::BufferDescriptor desc = getBufferDescriptor(v_size * 2, false, flags);
   wgpu::Buffer v_buffer = state.device.createBuffer(desc);
 
-  desc = getBufferDescriptor(e_size, false, flags);
+  desc = getBufferDescriptor(e_size * 2, false, flags);
   wgpu::Buffer e_buffer = state.device.createBuffer(desc);
 
   flags = wgpu::BufferUsage::Storage |
@@ -69,11 +71,13 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
   // Populate buffers
   state.queue.writeBuffer(v_buffer, 0, csr.v, v_size);
   state.queue.writeBuffer(e_buffer, 0, csr.e, e_size);
+  state.queue.writeBuffer(v_buffer, v_size, reverse_csr.v, v_size);
+  state.queue.writeBuffer(e_buffer, e_size, reverse_csr.e, e_size);
   state.queue.writeBuffer(all_destinations, 0, request.dst, request.length * sizeof(uint32_t));
   state.queue.writeBuffer(all_sources, 0, request.src, request.length * sizeof(uint32_t));
 
   wgpu::BindGroup expand_groups[] = {
-    state.expand->csr_group.getBindGroup(v_buffer, e_buffer, v_size, e_size),
+    state.expand->csr_group.getBindGroup(v_buffer, e_buffer, v_size * 2, e_size * 2),
     state.expand->jfq_group.getBindGroup(jfq, search_info, v_size * WORKGROUPS, WORKGROUPS),
     state.expand->bsa_group.getBindGroup(bsak, bsa, v_size * WORKGROUPS * SEARCHES_PER_THREAD),
     state.expand->bsa_group.getBindGroup(bsa, bsak, v_size * WORKGROUPS * SEARCHES_PER_THREAD),
@@ -85,6 +89,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
     state.identify->bsa_group.getBindGroup(bsak, bsa, v_size * WORKGROUPS * SEARCHES_PER_THREAD),
     state.identify->bsa_group.getBindGroup(bsa, bsak, v_size * WORKGROUPS * SEARCHES_PER_THREAD),
   };
+
 
   wgpu::BindGroup set_bsak_groups[] = {
     state.set_bsak->set_bsak_group.getBindGroup(search_info, all_sources, bsak, csr.v_length, request.length),
@@ -115,6 +120,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
 #else
     uint32_t target_iterations = 2;
 #endif
+    bool bottom_up = false;
     while (jfq_length > 0) {
       encoder = state.device.createCommandEncoder();
       for (size_t iterations = 0; iterations < target_iterations; iterations++) {
@@ -123,14 +129,14 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
           encoder.clearBuffer(search_info, (2 + 4 * w) * sizeof(uint32_t), sizeof(uint32_t));
         }
         wgpu::ComputePassEncoder c_encoder = encoder.beginComputePass();
-        c_encoder.setPipeline(state.identify->pipeline);
+        c_encoder.setPipeline((bottom_up) ? state.identify_bottom_up->pipeline : state.identify->pipeline);
         c_encoder.setBindGroup(0, identify_groups[0], 0, nullptr);
         c_encoder.setBindGroup(1, identify_groups[1], 0, nullptr);
         c_encoder.setBindGroup(2, identify_groups[2 + iterations % 2], 0, nullptr);
         // identify uses 64 warps to find results for 2048 searches
         c_encoder.dispatchWorkgroups(WORKGROUPS, 92 * 8, 1);
 
-        c_encoder.setPipeline(state.expand->pipeline);
+        c_encoder.setPipeline((bottom_up) ? state.expand_bottom_up->pipeline : state.expand->pipeline);
         c_encoder.setBindGroup(0, expand_groups[0], 0, nullptr);
         c_encoder.setBindGroup(1, expand_groups[1], 0, nullptr);
         c_encoder.setBindGroup(2, expand_groups[2 + iterations % 2], 0, nullptr);
@@ -144,6 +150,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, 
       encoder.release();
       auto output = getMappedResult(state, jfq_length_staging, sizeof(uint32_t));
       jfq_length = output[0];
+      bottom_up = ((double)jfq_length / csr.v_length) > 0.75 && !bottom_up;
     }
 
   }

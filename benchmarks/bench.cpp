@@ -9,6 +9,8 @@
         load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
         load_file("data/" #scale "/v.bin"),                                    \
         load_file("data/" #scale "/e.bin"),                                    \
+        load_file("data/" #scale "/r-v.bin"),                                    \
+        load_file("data/" #scale "/r-e.bin"),                                    \
     };                                                                         \
     TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \
@@ -23,6 +25,12 @@
               .e = (uint32_t *)files[3].data,                                  \
               .v_length = files[2].length / sizeof(uint32_t),                  \
               .e_length = files[3].length / sizeof(uint32_t),                  \
+          },                                                                   \
+          {                                                                    \
+              .v = (uint32_t *)files[4].data,                                  \
+              .e = (uint32_t *)files[5].data,                                  \
+              .v_length = files[4].length / sizeof(uint32_t),                  \
+              .e_length = files[5].length / sizeof(uint32_t),                  \
           },                                                                   \
           info);                                                               \
     }                                                                          \

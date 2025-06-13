@@ -14,5 +14,7 @@ public:
   wgpu::Queue queue;
   std::unique_ptr<FrontierExpansion> expand;
   std::unique_ptr<FrontierIdentification> identify;
+  std::unique_ptr<FrontierExpansion> expand_bottom_up;
+  std::unique_ptr<FrontierIdentification> identify_bottom_up;
   std::unique_ptr<SetFirstBSAK> set_bsak;
 };

@@ -3,6 +3,7 @@
 #include "kernels/frontier-expansion.hpp"
 #include "kernels/frontier-identification.hpp"
 #include <memory>
+#include "util/shader-locator.hpp"
 #include "wgpu/wgpu-state.hpp"
 
 
@@ -33,8 +34,8 @@ WGPUState::WGPUState() {
   limits.setDefault();
   // TODO: this should probably be dynamically set.
   // This should now reject any GPU not being able to handle SF300
-  limits.maxBufferSize = 273255928;
-  limits.maxStorageBufferBindingSize = 273255928;
+  limits.maxBufferSize = 546511856;
+  limits.maxStorageBufferBindingSize = 546511856;
   limits.maxComputeInvocationsPerWorkgroup = 256;
   device_desc.requiredLimits = &limits;
 
@@ -43,6 +44,8 @@ WGPUState::WGPUState() {
   queue = device.getQueue();
   expand = std::unique_ptr<FrontierExpansion>(new FrontierExpansion(device));
   identify = std::unique_ptr<FrontierIdentification>(new FrontierIdentification(device));
+  expand_bottom_up = std::unique_ptr<FrontierExpansion>(new FrontierExpansion(device, LOCATE_SHADER("data/shaders/frontier-expansion-bottom-up.wgsl")));
+  identify_bottom_up = std::unique_ptr<FrontierIdentification>(new FrontierIdentification(device, LOCATE_SHADER("data/shaders/frontier-identification-bottom-up.wgsl")));
   set_bsak = std::unique_ptr<SetFirstBSAK>(new SetFirstBSAK(device));
 }
 

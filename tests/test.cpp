@@ -1,5 +1,5 @@
-#include "utils/file-loader.hpp"
 #include "msbfs.hpp"
+#include "utils/file-loader.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -17,7 +17,8 @@ bool check_against_csv(const char *path,
     while (std::getline(file, line)) {
       if (it >= results.size()) {
         std::cout << "More results in CSV then found" << std::endl;
-        std::cout << "Last correct result was " << t.src << "," << t.dst << "," << t.length << std::endl;
+        std::cout << "Last correct result was " << t.src << "," << t.dst << ","
+                  << t.length << std::endl;
         return false;
       }
       sscanf(line.c_str(), "%u,%u,%u", &t.src, &t.dst, &t.length);
@@ -36,12 +37,14 @@ bool check_against_csv(const char *path,
 }
 
 #define CREATE_TEST_CASE(scale, pairs)                                         \
-  TEST(MSBFSIterativeLength, Scale##scale##Pairs##pairs) {                                   \
+  TEST(MSBFSIterativeLength, Scale##scale##Pairs##pairs) {                     \
     BinaryLoadedFile files[] = {                                               \
         load_file("data/" #scale "/" #pairs "-src.bin"),                       \
         load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
         load_file("data/" #scale "/v.bin"),                                    \
         load_file("data/" #scale "/e.bin"),                                    \
+        load_file("data/" #scale "/r-v.bin"),                                  \
+        load_file("data/" #scale "/r-e.bin"),                                  \
     };                                                                         \
     std::vector<IterativeLengthResult> results = iterative_length(             \
         {                                                                      \
@@ -52,7 +55,11 @@ bool check_against_csv(const char *path,
         {.v = (uint32_t *)files[2].data,                                       \
          .e = (uint32_t *)files[3].data,                                       \
          .v_length = files[2].length / sizeof(uint32_t),                       \
-         .e_length = files[3].length / sizeof(uint32_t)});                     \
+         .e_length = files[3].length / sizeof(uint32_t)},                      \
+        {.v = (uint32_t *)files[4].data,                                       \
+         .e = (uint32_t *)files[5].data,                                       \
+         .v_length = files[4].length / sizeof(uint32_t),                       \
+         .e_length = files[5].length / sizeof(uint32_t)});                     \
                                                                                \
     ASSERT_TRUE(check_against_csv(                                             \
         "data/" #scale "/" #pairs "-iterativelength-truth.csv", results));     \
@@ -129,6 +136,8 @@ TEST(MSBFSIterativeLength, GraphBlas) {
   std::vector<uint32_t> dst = {1, 2, 3, 4, 5, 6};
   std::vector<uint32_t> v = {0, 2, 4, 5, 7, 2, 6, 11};
   std::vector<uint32_t> e = {1, 3, 4, 6, 5, 0, 2, 5, 2, 2, 3, 4};
+  std::vector<uint32_t> rv = {0, 1, 2, 5, 7, 9, 11, 12};
+  std::vector<uint32_t> re = {3, 0, 3, 5, 6, 0, 6, 1, 6, 2, 4, 1};
 
   std::vector<IterativeLengthResult> results = iterative_length(
       {
@@ -141,6 +150,12 @@ TEST(MSBFSIterativeLength, GraphBlas) {
           .e = e.data(),
           .v_length = v.size(),
           .e_length = e.size(),
+      },
+      {
+          .v = rv.data(),
+          .e = re.data(),
+          .v_length = rv.size(),
+          .e_length = re.size(),
       });
   std::vector<uint32_t> expected_results = {1, 2, 1, 2, 3, 2};
 
