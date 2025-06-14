@@ -29,10 +29,15 @@ dawn = {
 }
 
 targets = [
-    cuda,
     wgpu,
     dawn
 ]
+
+try:
+    subprocess.check_output('nvidia-smi')
+    targets.append(cuda)
+except Exception: # this command not being found can raise quite a few different errors depending on the configuration
+    pass
 
 workgroups = [1, 2, 4]
 
@@ -40,6 +45,9 @@ subprocess.run(["python", "scripts/generate-tests.py"])
 for target in targets:
     for prop in target:
         if (prop == "name"):
+            continue
+        if (prop == "create_build_directory" or prop == "bulid"):
+            subprocess.run(target[prop]).check_returncode()
             continue
         for workgroup in workgroups:
             my_env = os.environ.copy()
