@@ -37,8 +37,6 @@ try:
 except Exception: # this command not being found can raise quite a few different errors depending on the configuration
     pass
 
-workgroups = [1, 2, 4]
-
 subprocess.run(["python", "scripts/generate-tests.py"])
 for target in targets:
     for prop in target:
