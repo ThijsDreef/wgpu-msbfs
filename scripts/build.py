@@ -2,7 +2,7 @@ import subprocess
 import os
 
 def get_output_name(prefix):
-    return f'{prefix}_coalesced-access.json'
+    return f'{prefix}_coalesced-access-bottom-up.json'
 
 cuda = {
     "create_build_directory": ["cmake", "-S", ".", "-B", "build/cuda", "-DBACKEND=CUDA"],
