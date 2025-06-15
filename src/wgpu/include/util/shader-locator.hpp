@@ -1,5 +1,4 @@
 // For development define USE_FILES here
-#define USE_FILES
 
 #ifdef USE_FILES
 // TODO this requires someone to free the returned pointer
