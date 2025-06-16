@@ -20,6 +20,7 @@ BinaryLoadedFile load_file(const char *path) {
   buf = new char[length + 1];
   fread(buf, 1, length, file);
   buf[length] = 0;
+  fclose(file);
 
   return {
     .data = buf,

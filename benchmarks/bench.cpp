@@ -1,6 +1,6 @@
 #include "benchmark/benchmark.h"
-#include "utils/file-loader.hpp"
 #include "msbfs.hpp"
+#include "utils/file-loader.hpp"
 
 #define CREATE_BENCHMARK(scale, pairs)                                         \
   static void BM_Scale##scale##Pairs##pairs(benchmark::State &state) {         \
@@ -9,8 +9,8 @@
         load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
         load_file("data/" #scale "/v.bin"),                                    \
         load_file("data/" #scale "/e.bin"),                                    \
-        load_file("data/" #scale "/r-v.bin"),                                    \
-        load_file("data/" #scale "/r-e.bin"),                                    \
+        load_file("data/" #scale "/r-v.bin"),                                  \
+        load_file("data/" #scale "/r-e.bin"),                                  \
     };                                                                         \
     TimingInfo info = {0, 0};                                                  \
     for (auto _ : state) {                                                     \
@@ -38,6 +38,12 @@
         info.expand_ns / 1000000000.0, benchmark::Counter::kAvgIterations);    \
     state.counters["Identify"] = benchmark::Counter(                           \
         info.identify_ns / 1000000000.0, benchmark::Counter::kAvgIterations);  \
+    free(files[0].data);                                                       \
+    free(files[1].data);                                                       \
+    free(files[2].data);                                                       \
+    free(files[3].data);                                                       \
+    free(files[4].data);                                                       \
+    free(files[5].data);                                                       \
   }                                                                            \
   BENCHMARK(BM_Scale##scale##Pairs##pairs)->Unit(benchmark::kSecond)
 
@@ -106,6 +112,5 @@ CREATE_BENCHMARK(300, 8192);
 CREATE_BENCHMARK(300, 16384);
 CREATE_BENCHMARK(300, 32768);
 CREATE_BENCHMARK(300, 65536);
-
 
 BENCHMARK_MAIN();

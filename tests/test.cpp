@@ -63,6 +63,12 @@ bool check_against_csv(const char *path,
                                                                                \
     ASSERT_TRUE(check_against_csv(                                             \
         "data/" #scale "/" #pairs "-iterativelength-truth.csv", results));     \
+    free(files[0].data);                                                       \
+    free(files[1].data);                                                       \
+    free(files[2].data);                                                       \
+    free(files[3].data);                                                       \
+    free(files[4].data);                                                       \
+    free(files[5].data);                                                       \
   }
 
 CREATE_TEST_CASE(1, 1)
