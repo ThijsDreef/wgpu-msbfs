@@ -5,7 +5,30 @@ import tarfile, io
 import tempfile
 import tarfile
 import zstandard
+import subprocess
 from pathlib import Path
+
+def generate_reverse_data():
+    data_folders = [
+        "data/1",
+        "data/3",
+        "data/10",
+        "data/30",
+        "data/100",
+        "data/300"
+    ]
+
+    executable_name = ""
+    if os.name == "nt":
+        subprocess.run("cl scripts/generate-reverse.cpp /OUT:reverse.exe")
+        executable_name = "reverse.exe"
+    else:
+        subprocess.run(["g++", "scripts/generate-reverse.cpp", "-o", "reverse"])
+        executable_name = "reverse"
+
+    for folder in data_folders:
+        subprocess.run([f"{os.getcwd()}/reverse", "v.bin", "e.bin"], cwd=folder)
+        os.remove(os.getcwd() + "/" + executable_name)
 
 DUCKPGQ_INSTALL_COMMAND = "force install 'scripts/duckpgq.duckdb_extension'"
 
@@ -190,3 +213,4 @@ def generate_ground_truth():
 
 download_test_data()
 generate_ground_truth()
+generate_reverse_data()

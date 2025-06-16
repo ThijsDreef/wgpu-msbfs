@@ -37,7 +37,7 @@ fn main(
   @builtin(num_workgroups) invocation_size: vec3<u32>,
   @builtin(workgroup_id) invocation_id: vec3<u32>,
 ) {
-  if (local_id.x == 0u && invocation_id.y == 0u) {
+  if (local_id.x == 0u && local_id.y == 0u && invocation_id.y == 0u) {
     search_info.iteration += 1;
     search_info.last_jfq = search_info.jfq_length;
   }
