@@ -142,7 +142,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
         expand_step<<<grid, block>>>(cuda_csr.v_length, v_buffer, e_buffer, search_info, jfq, bsak, bsa);
       }
       cudaDeviceSynchronize();
-      if (iteration % 4 == 0) {
+      if (iteration % 2 == 0) {
         cudaMemcpy(debug, search_info, WORKGROUPS * sizeof(SearchInfo), cudaMemcpyDeviceToHost);
         jfq_lengths = 0;
         for (size_t i = 0; i < WORKGROUPS; i++) {

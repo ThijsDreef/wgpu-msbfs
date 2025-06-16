@@ -2,7 +2,7 @@ import subprocess
 import os
 
 def get_output_name(prefix, workgroups):
-    return f'{workgroups}_{prefix}_workgroups.json'
+    return f'{prefix}_{workgroups}-workgroups.json'
 
 cuda = {
     "name": "cuda",
