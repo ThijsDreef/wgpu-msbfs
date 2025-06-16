@@ -1,5 +1,5 @@
-#include "utils/file-loader.hpp"
 #include "msbfs.hpp"
+#include "utils/file-loader.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -17,7 +17,8 @@ bool check_against_csv(const char *path,
     while (std::getline(file, line)) {
       if (it >= results.size()) {
         std::cout << "More results in CSV then found" << std::endl;
-        std::cout << "Last correct result was " << t.src << "," << t.dst << "," << t.length << std::endl;
+        std::cout << "Last correct result was " << t.src << "," << t.dst << ","
+                  << t.length << std::endl;
         return false;
       }
       sscanf(line.c_str(), "%u,%u,%u", &t.src, &t.dst, &t.length);
@@ -36,7 +37,7 @@ bool check_against_csv(const char *path,
 }
 
 #define CREATE_TEST_CASE(scale, pairs)                                         \
-  TEST(MSBFSIterativeLength, Scale##scale##Pairs##pairs) {                                   \
+  TEST(MSBFSIterativeLength, Scale##scale##Pairs##pairs) {                     \
     BinaryLoadedFile files[] = {                                               \
         load_file("data/" #scale "/" #pairs "-src.bin"),                       \
         load_file("data/" #scale "/" #pairs "-dst.bin"),                       \
@@ -54,6 +55,10 @@ bool check_against_csv(const char *path,
          .v_length = files[2].length / sizeof(uint32_t),                       \
          .e_length = files[3].length / sizeof(uint32_t)});                     \
                                                                                \
+    free(files[0].data);                                                       \
+    free(files[1].data);                                                       \
+    free(files[2].data);                                                       \
+    free(files[3].data);                                                       \
     ASSERT_TRUE(check_against_csv(                                             \
         "data/" #scale "/" #pairs "-iterativelength-truth.csv", results));     \
   }

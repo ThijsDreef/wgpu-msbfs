@@ -30,6 +30,10 @@
         info.expand_ns / 1000000000.0, benchmark::Counter::kAvgIterations);    \
     state.counters["Identify"] = benchmark::Counter(                           \
         info.identify_ns / 1000000000.0, benchmark::Counter::kAvgIterations);  \
+    free(files[0].data);                                                       \
+    free(files[1].data);                                                       \
+    free(files[2].data);                                                       \
+    free(files[3].data);                                                       \
   }                                                                            \
   BENCHMARK(BM_Scale##scale##Pairs##pairs)->Unit(benchmark::kSecond)
 
