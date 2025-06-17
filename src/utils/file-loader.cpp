@@ -4,13 +4,13 @@
 BinaryLoadedFile load_file(const char *path) {
   FILE *file;
   char *buf;
+  BinaryLoadedFile result;
 
   file = fopen(path, "rb");
   if (!file) {
-    return {
-      .data = nullptr,
-      .length = 0,
-    };
+    result.data = nullptr;
+    result.length = 0;
+    return result;
   }
 
   // Add error checking here?
@@ -22,8 +22,7 @@ BinaryLoadedFile load_file(const char *path) {
   buf[length] = 0;
   fclose(file);
 
-  return {
-    .data = buf,
-    .length = length,
-  };
+  result.data = buf;
+  result.length = length;
+  return result;
 }

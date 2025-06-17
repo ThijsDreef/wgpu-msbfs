@@ -1,4 +1,3 @@
-#include "sys/mman.h"
 #include <cstdint>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -16,13 +15,13 @@ struct BinaryLoadedFile {
 BinaryLoadedFile load_file(const char *path) {
   FILE *file;
   char *buf;
+  BinaryLoadedFile result;
 
   file = fopen(path, "rb");
   if (!file) {
-    return {
-      .data = nullptr,
-      .length = 0,
-    };
+    result.data = nullptr;
+    result.length = 0;
+    return result;
   }
 
   // Add error checking here?
@@ -33,10 +32,9 @@ BinaryLoadedFile load_file(const char *path) {
   fread(buf, 1, length, file);
   buf[length] = 0;
 
-  return {
-    .data = buf,
-    .length = length,
-  };
+  result.data = buf;
+  result.length = length;
+  return result;
 }
 
 
@@ -48,12 +46,11 @@ struct CSR {
 };
 
 CSR reverse_csr(CSR original) {
-  CSR reversed_csr = {
-    .v = new uint32_t[original.v_length],
-    .e = new uint32_t[original.e_length],
-    .v_length = original.v_length,
-    .e_length = original.e_length,
-  };
+  CSR reversed_csr;
+  reversed_csr.v = new uint32_t[original.v_length];
+  reversed_csr.e = new uint32_t[original.e_length];
+  reversed_csr.v_length = original.v_length;
+  reversed_csr.e_length = original.e_length;
 
   std::vector<std::vector<uint32_t>> results;
   for (size_t x = 0; x < original.v_length; x++) {
@@ -85,12 +82,12 @@ int main(int argc, char **argv) {
   struct BinaryLoadedFile vertex = load_file(argv[1]);
   struct BinaryLoadedFile edges = load_file(argv[2]);
 
-  CSR from_csr = {
-      .v = (uint32_t *)vertex.data,
-      .e = (uint32_t *)edges.data,
-      .v_length = vertex.length / sizeof(uint32_t),
-      .e_length = edges.length / sizeof(uint32_t),
-  };
+  CSR from_csr;
+
+  from_csr.v = (uint32_t *)vertex.data;
+  from_csr.e = (uint32_t *)edges.data;
+  from_csr.v_length = vertex.length / sizeof(uint32_t);
+  from_csr.e_length = edges.length / sizeof(uint32_t);
 
   CSR reversed_csr = reverse_csr(from_csr);
   FILE *fp = fopen("r-v.bin", "wb");

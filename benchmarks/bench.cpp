@@ -13,26 +13,22 @@
         load_file("data/" #scale "/r-e.bin"),                                  \
     };                                                                         \
     TimingInfo info = {0, 0};                                                  \
+    PathFindingRequest request;                                                \
+    request.src = (uint32_t *)files[0].data;                                   \
+    request.dst = (uint32_t *)files[1].data;                                   \
+    request.length = files[1].length / sizeof(uint32_t);                       \
+    CSR csr;                                                                   \
+    csr.v = (uint32_t *)files[2].data;                                         \
+    csr.e = (uint32_t *)files[3].data;                                         \
+    csr.v_length = files[2].length / sizeof(uint32_t);                         \
+    csr.e_length = files[3].length / sizeof(uint32_t);                         \
+    CSR reverse_csr;                                                           \
+    reverse_csr.v = (uint32_t *)files[4].data;                                 \
+    reverse_csr.e = (uint32_t *)files[5].data;                                 \
+    reverse_csr.v_length = files[4].length / sizeof(uint32_t);                 \
+    reverse_csr.e_length = files[5].length / sizeof(uint32_t);                 \
     for (auto _ : state) {                                                     \
-      iterative_length(                                                        \
-          {                                                                    \
-              .src = (uint32_t *)files[0].data,                                \
-              .dst = (uint32_t *)files[1].data,                                \
-              .length = files[1].length / sizeof(uint32_t),                    \
-          },                                                                   \
-          {                                                                    \
-              .v = (uint32_t *)files[2].data,                                  \
-              .e = (uint32_t *)files[3].data,                                  \
-              .v_length = files[2].length / sizeof(uint32_t),                  \
-              .e_length = files[3].length / sizeof(uint32_t),                  \
-          },                                                                   \
-          {                                                                    \
-              .v = (uint32_t *)files[4].data,                                  \
-              .e = (uint32_t *)files[5].data,                                  \
-              .v_length = files[4].length / sizeof(uint32_t),                  \
-              .e_length = files[5].length / sizeof(uint32_t),                  \
-          },                                                                   \
-          info);                                                               \
+      iterative_length(request, csr, reverse_csr, info);                       \
     }                                                                          \
     state.counters["Expand"] = benchmark::Counter(                             \
         info.expand_ns / 1000000000.0, benchmark::Counter::kAvgIterations);    \

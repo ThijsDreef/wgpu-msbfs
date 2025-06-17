@@ -46,20 +46,25 @@ bool check_against_csv(const char *path,
         load_file("data/" #scale "/r-v.bin"),                                  \
         load_file("data/" #scale "/r-e.bin"),                                  \
     };                                                                         \
+    PathFindingRequest request;                                                \
+    request.src = (uint32_t *)files[0].data;                                   \
+    request.dst = (uint32_t *)files[1].data;                                   \
+    request.length = files[1].length / sizeof(uint32_t);                       \
+    CSR csr;                                                                   \
+    csr.v = (uint32_t *)files[2].data;                                         \
+    csr.e = (uint32_t *)files[3].data;                                         \
+    csr.v_length = files[2].length / sizeof(uint32_t);                         \
+    csr.e_length = files[3].length / sizeof(uint32_t);                         \
+    CSR reverse_csr;                                                           \
+    reverse_csr.v = (uint32_t *)files[4].data;                                 \
+    reverse_csr.e = (uint32_t *)files[5].data;                                 \
+    reverse_csr.v_length = files[4].length / sizeof(uint32_t);                 \
+    reverse_csr.e_length = files[5].length / sizeof(uint32_t);                 \
     std::vector<IterativeLengthResult> results = iterative_length(             \
-        {                                                                      \
-            .src = (uint32_t *)files[0].data,                                  \
-            .dst = (uint32_t *)files[1].data,                                  \
-            .length = files[1].length / sizeof(uint32_t),                      \
-        },                                                                     \
-        {.v = (uint32_t *)files[2].data,                                       \
-         .e = (uint32_t *)files[3].data,                                       \
-         .v_length = files[2].length / sizeof(uint32_t),                       \
-         .e_length = files[3].length / sizeof(uint32_t)},                      \
-        {.v = (uint32_t *)files[4].data,                                       \
-         .e = (uint32_t *)files[5].data,                                       \
-         .v_length = files[4].length / sizeof(uint32_t),                       \
-         .e_length = files[5].length / sizeof(uint32_t)});                     \
+      request,                                                                 \
+      csr,                                                                     \
+      reverse_csr                                                              \
+    );                                                                         \
                                                                                \
     ASSERT_TRUE(check_against_csv(                                             \
         "data/" #scale "/" #pairs "-iterativelength-truth.csv", results));     \
@@ -145,24 +150,22 @@ TEST(MSBFSIterativeLength, GraphBlas) {
   std::vector<uint32_t> rv = {0, 1, 2, 5, 7, 9, 11, 12};
   std::vector<uint32_t> re = {3, 0, 3, 5, 6, 0, 6, 1, 6, 2, 4, 1};
 
-  std::vector<IterativeLengthResult> results = iterative_length(
-      {
-          .src = src.data(),
-          .dst = dst.data(),
-          .length = src.size(),
-      },
-      {
-          .v = v.data(),
-          .e = e.data(),
-          .v_length = v.size(),
-          .e_length = e.size(),
-      },
-      {
-          .v = rv.data(),
-          .e = re.data(),
-          .v_length = rv.size(),
-          .e_length = re.size(),
-      });
+  PathFindingRequest request;
+  request.src = src.data();
+  request.dst = dst.data();
+  request.length = src.size();
+  CSR csr;
+  csr.v = v.data();
+  csr.e = e.data();
+  csr.v_length = v.size();
+  csr.e_length = e.size();
+  CSR reverse_csr;
+  reverse_csr.v = rv.data();
+  reverse_csr.e = re.data();
+  reverse_csr.v_length = rv.size();
+  reverse_csr.e_length = re.size();
+
+  std::vector<IterativeLengthResult> results = iterative_length(request, csr, reverse_csr);
   std::vector<uint32_t> expected_results = {1, 2, 1, 2, 3, 2};
 
   EXPECT_EQ(results.size(), expected_results.size());

@@ -191,7 +191,7 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
     cudaMemset(search_info, 0, sizeof(SearchInfo));
     // Setup BSAK
     set_first_bsak<<<SEARCH_ENTRIES, 32>>>(bsak, src + offset, request.length - offset);
-    dim3 grid(1, 46 * 6, 1);
+    dim3 grid(1, 46 * 4, 1);
     dim3 block(SEARCH_ENTRIES, 4, 1);
     uint32_t jfq_lengths = 1;
     int32_t bottom_up_iterations = 0;
@@ -232,11 +232,11 @@ std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
     if (host_result[j] == 0 && request.dst[j] != request.src[j]) {
       continue;
     }
-    results.push_back({
-      .src = request.src[j],
-      .dst = request.dst[j],
-      .length = host_result[j],
-    });
+    IterativeLengthResult result;
+    result.src = request.src[j];
+    result.dst = request.dst[j];
+    result.length = host_result[j];
+    results.push_back(result);
   }
 
   cudaFree(v_buffer);
