@@ -23,6 +23,7 @@ add_library(${LIB_NAME} ${LIB_TYPE}
 
 target_link_libraries(${LIB_NAME} webgpu utils)
 target_include_directories(${LIB_NAME} PUBLIC include/)
+target_copy_webgpu_binaries(${LIB_NAME})
 
 if(BACKEND STREQUAL "EMDAWNWEBGPU")
   add_executable(wgpu-msbfs-web main.cpp)

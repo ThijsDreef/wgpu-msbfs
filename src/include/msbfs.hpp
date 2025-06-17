@@ -24,10 +24,15 @@ struct TimingInfo {
   uint64_t expand_ns;
   uint64_t identify_ns;
 };
-
+ 
+#ifdef _WIN32
+ __declspec(dllexport)
+#endif
 std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request, CSR csr);
 
-
+#ifdef _WIN32
+ __declspec(dllexport)
+#endif
 std::vector<IterativeLengthResult> iterative_length(PathFindingRequest request,
                                                     CSR csr,
                                                     TimingInfo &timing_info);

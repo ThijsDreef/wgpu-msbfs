@@ -44,16 +44,17 @@ bool check_against_csv(const char *path,
         load_file("data/" #scale "/v.bin"),                                    \
         load_file("data/" #scale "/e.bin"),                                    \
     };                                                                         \
-    std::vector<IterativeLengthResult> results = iterative_length(             \
-        {                                                                      \
-            .src = (uint32_t *)files[0].data,                                  \
-            .dst = (uint32_t *)files[1].data,                                  \
-            .length = files[1].length / sizeof(uint32_t),                      \
-        },                                                                     \
-        {.v = (uint32_t *)files[2].data,                                       \
-         .e = (uint32_t *)files[3].data,                                       \
-         .v_length = files[2].length / sizeof(uint32_t),                       \
-         .e_length = files[3].length / sizeof(uint32_t)});                     \
+    CSR csr;                                                                   \
+    csr.v = (uint32_t *)files[2].data;\
+    csr.e = (uint32_t *)files[3].data;\
+    csr.v_length = files[2].length / sizeof(uint32_t);\
+    csr.e_length = files[3].length / sizeof(uint32_t);\
+\
+    PathFindingRequest request;\
+    request.src = (uint32_t *) files[0].data;\
+    request.dst = (uint32_t *) files[1].data;\
+    request.length = files[1].length / sizeof(uint32_t);\
+    std::vector<IterativeLengthResult> results = iterative_length(request, csr);                     \
                                                                                \
     free(files[0].data);                                                       \
     free(files[1].data);                                                       \
@@ -135,18 +136,18 @@ TEST(MSBFSIterativeLength, GraphBlas) {
   std::vector<uint32_t> v = {0, 2, 4, 5, 7, 2, 6, 11};
   std::vector<uint32_t> e = {1, 3, 4, 6, 5, 0, 2, 5, 2, 2, 3, 4};
 
-  std::vector<IterativeLengthResult> results = iterative_length(
-      {
-          .src = src.data(),
-          .dst = dst.data(),
-          .length = src.size(),
-      },
-      {
-          .v = v.data(),
-          .e = e.data(),
-          .v_length = v.size(),
-          .e_length = e.size(),
-      });
+  CSR csr;                                                                   
+  csr.v = v.data();
+  csr.e = e.data();
+  csr.v_length = v.size();
+  csr.e_length = e.size();
+
+  PathFindingRequest request;
+  request.src = src.data();
+  request.dst = dst.data();
+  request.length = src.size();
+
+  std::vector<IterativeLengthResult> results = iterative_length(request, csr);
   std::vector<uint32_t> expected_results = {1, 2, 1, 2, 3, 2};
 
   EXPECT_EQ(results.size(), expected_results.size());

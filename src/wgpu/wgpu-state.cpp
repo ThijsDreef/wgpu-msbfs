@@ -14,20 +14,26 @@ void error(WGPUDeviceImpl *const * x, WGPUErrorType type, WGPUStringView msg, vo
 }
 
 WGPUState::WGPUState() {
-  instance = wgpu::createInstance({});
+
+  instance = wgpuCreateInstance({});
+
+  // instance = wgpu::createInstance();
   wgpu::RequestAdapterOptions options;
+  options.setDefault();
   options.powerPreference = wgpu::PowerPreference::HighPerformance;
+
   wgpu::Adapter adapter = instance.requestAdapter(options);
 
-  wgpu::FeatureName required_features[] = {
-    wgpu::FeatureName::TimestampQuery,
-  };
+  // wgpu::FeatureName required_features[] = {
+  //   wgpu::FeatureName::TimestampQuery,
+  // };
 
   wgpu::DeviceDescriptor device_desc;
-  device_desc.uncapturedErrorCallbackInfo.callback = error;
-  device_desc.requiredFeatures =
-    reinterpret_cast<WGPUFeatureName *>(required_features);
-  device_desc.requiredFeatureCount = 1;
+  device_desc.setDefault();
+  // device_desc.uncapturedErrorCallbackInfo.callback = error;
+  // device_desc.requiredFeatures =
+  //   reinterpret_cast<WGPUFeatureName *>(required_features);
+  // device_desc.requiredFeatureCount = 1;
 
   wgpu::Limits limits;
   limits.setDefault();
