@@ -27,8 +27,8 @@ def generate_reverse_data():
         executable_name = "reverse"
 
     for folder in data_folders:
-        subprocess.run([f"{os.getcwd()}/reverse", "v.bin", "e.bin"], cwd=folder)
-        os.remove(os.getcwd() + "/" + executable_name)
+        subprocess.run([f"{os.getcwd()}/{executable_name}", "v.bin", "e.bin"], cwd=folder)
+    os.remove(os.getcwd() + "/" + executable_name)
 
 DUCKPGQ_INSTALL_COMMAND = "force install 'scripts/duckpgq.duckdb_extension'"
 

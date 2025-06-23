@@ -7,22 +7,22 @@ def get_output_name(prefix):
 cuda = {
     "create_build_directory": ["cmake", "-S", ".", "-B", "build/cuda", "-DBACKEND=CUDA"],
     "build": ["cmake", "--build", "build/cuda"],
-    "test": ["./build/cuda/tests/test_wgpumsbfs"],
-    "benchmark": ["./build/cuda/benchmarks/bench_wgpumsbfs", f'--benchmark_out={get_output_name('cuda')}']
+    "test": ["./build/cuda/bin/test_wgpumsbfs"],
+    "benchmark": ["./build/cuda/bin/bench_wgpumsbfs", f'--benchmark_out={get_output_name('cuda')}']
 }
 
 wgpu = {
     "create_build_directory": ["cmake", "-S", ".", "-B", "build/wgpu", "-DBACKEND=WGPU", "-DWEBGPU_BUILD_FROM_SOURCE=OFF"],
     "build": ["cmake", "--build", "build/wgpu"],
-    "test": ["./build/wgpu/tests/test_wgpumsbfs"],
-    "benchmark": ["./build/wgpu/benchmarks/bench_wgpumsbfs", f'--benchmark_out={get_output_name('wgpu')}']
+    "test": ["./build/wgpu/bin/test_wgpumsbfs"],
+    "benchmark": ["./build/wgpu/bin/bench_wgpumsbfs", f'--benchmark_out={get_output_name('wgpu')}']
 }
 
 dawn = {
     "create_build_directory": ["cmake", "-S", ".", "-B", "build/dawn", "-DBACKEND=DAWN", "-DWEBGPU_BUILD_FROM_SOURCE=OFF"],
     "build": ["cmake", "--build", "build/dawn"],
-    "test": ["./build/dawn/tests/test_wgpumsbfs"],
-    "benchmark": ["./build/dawn/benchmarks/bench_wgpumsbfs", f'--benchmark_out={get_output_name('dawn')}']
+    "test": ["./build/dawn/bin/test_wgpumsbfs"],
+    "benchmark": ["./build/dawn/bin/bench_wgpumsbfs", f'--benchmark_out={get_output_name('dawn')}']
 }
 
 
